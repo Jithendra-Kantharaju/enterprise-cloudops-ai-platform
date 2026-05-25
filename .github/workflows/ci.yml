@@ -1,6 +1,9 @@
 name: Boutique CI Pipeline
 
 on:
+  push:
+    branches:
+      - main
   workflow_dispatch:
 
 env:
@@ -92,4 +95,3 @@ jobs:
           git add gitops/k8s/
           git diff --staged --quiet || git commit -m "ci: update image tags to ${{ github.sha }}"
           git push
-

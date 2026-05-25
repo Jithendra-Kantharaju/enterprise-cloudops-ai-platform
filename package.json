@@ -1,0 +1,25 @@
+{
+  "name": "devops-aiops-stack",
+  "version": "1.0.0",
+  "description": "> A full end-to-end DevOps project with AIOps integration — so you can connect the dots between how AI is helping automate DevOps tasks today.",
+  "main": "index.js",
+  "directories": {
+    "doc": "docs"
+  },
+  "scripts": {
+    "build": "echo \"Build complete. Run builds in individual service directories (e.g. projects/boutique-microservices/backend/services/*)\"",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Jithendra-Kantharaju/devops-aiops-stack.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/Jithendra-Kantharaju/devops-aiops-stack/issues"
+  },
+  "homepage": "https://github.com/Jithendra-Kantharaju/devops-aiops-stack#readme"
+}

@@ -27,9 +27,9 @@ Most servers run Linux. You need to be comfortable with:
 
 ### 3. Containers (Docker)
 Containers package your app and all its dependencies into a portable unit.
-- **Dockerfile** — defines how to build the image
-- **Image** — the blueprint
-- **Container** — a running instance of an image
+- **Dockerfile** — defines how to build the image.
+- **Image** — the blueprint.
+- **Container** — a running instance of an image.
 - Key commands: `docker build`, `docker run`, `docker ps`, `docker logs`
 
 ### 4. CI/CD — What It Means

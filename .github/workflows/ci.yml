@@ -56,7 +56,6 @@ jobs:
             -t ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.$AWS_REGION.amazonaws.com/${{ matrix.service }}:$IMAGE_TAG \
           $BUILD_PATH
 
-
       - name: Push Docker Image
         run: |
           IMAGE_URI=${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/${{ matrix.service }}:${{ github.sha }}
@@ -75,23 +74,25 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Update image tags in k8s manifests
+      - name: Set up Kustomize
+        uses: imranismail/setup-kustomize@v2
+
+      - name: Update image tags in Kustomization
         run: |
-          NEW_TAG=${{ github.sha }}
+          cd gitops
           ACCOUNT=${{ secrets.AWS_ACCOUNT_ID }}
           REGION=${{ secrets.AWS_REGION }}
+          NEW_TAG=${{ github.sha }}
 
-          for SERVICE in auth gateway orders order-service product-service user-service; do
-            MANIFEST="gitops/k8s/backend/${SERVICE}.yml"
-            sed -i "s|${ACCOUNT}.dkr.ecr.${REGION}.amazonaws.com/${SERVICE}:.*|${ACCOUNT}.dkr.ecr.${REGION}.amazonaws.com/${SERVICE}:${NEW_TAG}|g" $MANIFEST
+          # Point Kustomize to use the newly generated image tag for the sync cycle
+          for SERVICE in auth gateway orders order-service product-service user-service frontend; do
+            kustomize edit set image <AWS_ACCOUNT_ID>.dkr.ecr.us-east-1.amazonaws.com/${SERVICE}=${ACCOUNT}.dkr.ecr.${REGION}.amazonaws.com/${SERVICE}:${NEW_TAG}
           done
-
-          sed -i "s|${ACCOUNT}.dkr.ecr.${REGION}.amazonaws.com/frontend:.*|${ACCOUNT}.dkr.ecr.${REGION}.amazonaws.com/frontend:${NEW_TAG}|g" gitops/k8s/frontend/deployment.yml
 
       - name: Commit and push updated manifests
         run: |
           git config user.name "github-actions"
           git config user.email "github-actions@github.com"
-          git add gitops/k8s/
-          git diff --staged --quiet || git commit -m "ci: update image tags to ${{ github.sha }}"
+          git add gitops/kustomization.yml
+          git diff --staged --quiet || git commit -m "ci: update kustomize image tags to ${{ github.sha }}"
           git push

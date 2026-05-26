@@ -84,9 +84,9 @@ jobs:
           REGION=${{ secrets.AWS_REGION }}
           NEW_TAG=${{ github.sha }}
 
-          # Point Kustomize to use the newly generated image tag for the sync cycle
+          # Wrapped the placeholder target in single quotes to escape Linux shell redirection symbols (< >)
           for SERVICE in auth gateway orders order-service product-service user-service frontend; do
-            kustomize edit set image <AWS_ACCOUNT_ID>.dkr.ecr.us-east-1.amazonaws.com/${SERVICE}=${ACCOUNT}.dkr.ecr.${REGION}.amazonaws.com/${SERVICE}:${NEW_TAG}
+            kustomize edit set image '<AWS_ACCOUNT_ID>.dkr.ecr.us-east-1.amazonaws.com/'${SERVICE}=${ACCOUNT}.dkr.ecr.${REGION}.amazonaws.com/${SERVICE}:${NEW_TAG}
           done
 
       - name: Commit and push updated manifests

@@ -1,160 +1,193 @@
-# DevOps + AIOps Series
+# Enterprise CloudOps AI Platform
 
-> A full end-to-end DevOps project with AIOps integration — so you can connect the dots between how AI is helping automate DevOps tasks today.
+An end-to-end **DevOps + AIOps** platform: a seven-service e-commerce microservices
+application deployed on **AWS EKS**, provisioned with **Terraform**, delivered through a
+**GitHub Actions** CI/CD pipeline and **ArgoCD** GitOps, observed with
+**Prometheus + Grafana**, and operated by an **AI incident-diagnosis assistant ("Kira")**
+built on **AWS Bedrock**.
 
----
-
-## Welcome
-
-Hey everyone!
-
-Welcome to my DevOps + AI series where we build an end-to-end DevOps project with an AIOps integration.
-
-A lot of you have been asking: *"when are you going to share a full DevOps project?"*
-
-Well — here we are.
-
-In this series we will:
-
-- Build microservices locally
-- Use Claude and AI tools to assist development
-- Deploy everything step by step
-- Migrate the system to the cloud on AWS EKS
-- Set up a full CI/CD pipeline with GitHub Actions
-- Implement GitOps workflows with ArgoCD
-- Integrate AIOps capabilities with AWS Bedrock
-
-By the end of this series, you won't just know tools — you'll understand how real DevOps systems are designed and deployed.
+This repository is a hands-on implementation that takes an application from a local
+Docker Compose setup all the way to a self-healing, observable, AI-assisted production
+platform on Kubernetes.
 
 ---
 
-## Repository Structure
+## What this project demonstrates
 
+- **Infrastructure as Code** — entire AWS footprint (VPC, EKS, node groups, ECR, IAM, add-ons) defined in modular Terraform.
+- **Container orchestration** — microservices packaged as Docker images and run on a managed Kubernetes (EKS) cluster.
+- **CI/CD** — GitHub Actions builds and pushes seven service images to ECR in parallel and updates the deployment manifests.
+- **GitOps** — ArgoCD continuously reconciles the cluster to the Git-declared state (self-healing, drift detection).
+- **Observability** — every service exposes `/metrics`; Prometheus scrapes them, Grafana visualises them, Fluent Bit ships logs to CloudWatch.
+- **AIOps** — a Bedrock agent answers natural-language questions ("are any services down?") by calling Lambda tools that read live logs, metrics, and cluster health, then returns a root-cause diagnosis.
+
+---
+
+## Architecture
+
+```mermaid
+flowchart TB
+    user([User / Engineer])
+
+    subgraph AWS["AWS (us-east-1)"]
+        subgraph EKS["EKS Cluster"]
+            fe["Frontend (React + nginx)"]
+            gw["API Gateway"]
+            subgraph svc["Backend Microservices"]
+                auth["auth"]
+                prod["product-service"]
+                ordsvc["order-service"]
+                ords["orders"]
+                usr["user-service"]
+            end
+            pg[("PostgreSQL\nauth/products/orders/users DBs")]
+            subgraph mon["Monitoring"]
+                prom["Prometheus"]
+                graf["Grafana"]
+            end
+            argo["ArgoCD"]
+            fb["Fluent Bit"]
+        end
+        ecr["ECR (7 image repos)"]
+        cw["CloudWatch Logs"]
+        subgraph bedrock["AIOps"]
+            agent["Bedrock Agent 'Kira' (Nova Lite)"]
+            l1["Lambda: fetch_logs"]
+            l2["Lambda: fetch_metrics"]
+            l3["Lambda: fetch_health"]
+        end
+    end
+
+    gh["GitHub Actions CI"] -->|build + push| ecr
+    gh -->|update image tags| argo
+    argo -->|sync| EKS
+
+    user -->|shops| fe --> gw --> svc --> pg
+    svc -->|/metrics| prom --> graf
+    fb -->|pod logs| cw
+
+    user -->|chat| streamlit["Streamlit UI"] --> agent
+    agent --> l1 --> cw
+    agent --> l2 --> prom
+    agent --> l3 --> EKS
 ```
-DevOps-Practice-Guide/
-├── docs/
-│   ├── part1-system-design.md     # System design foundations (Part 1)
-│   ├── part2-workflow.md          # Full workflow with AIOps (Part 2)
-│   └── claude-setup.md            # Claude Code + MCP server setup
-├── projects/
-│   ├── README.md                  # EKS deployment guide (Part 3)
-│   ├── boutique-microservices/    # The application (7 services)
-│   ├── Infrastructure/            # Terraform for AWS provisioning
-│   └── aiops-assistant/           # Bedrock Agent — Kira (Part 4)
-├── gitops/
-│   ├── argo-cd.yml                # ArgoCD Application manifest
-│   ├── kustomization.yml          # Kustomize entry point
-│   └── k8s/                       # All Kubernetes manifests
-└── .github/
-    └── workflows/ci.yml           # GitHub Actions CI pipeline
-```
 
 ---
 
-## Series Structure
-
-### Claude Setup — AI Assistant Configuration
-[`docs/claude-setup.md`](docs/claude-setup.md)
-
-Before jumping into the project, this step walks through how Claude Code is configured as the AI assistant throughout this series.
-
-Three things are set up:
-
-**CLAUDE.md** — a project instruction file at the repo root that Claude reads automatically at the start of every session. It puts Claude in safe execution mode: explain what you're about to do and why before taking any action. This is important when working with live AWS infrastructure where silent commands can have real consequences.
-
-**MCP Servers** — background processes that extend Claude's built-in capabilities. Four servers are configured in `~/.claude/settings.json`:
-
-| Server | What it unlocks |
-|--------|----------------|
-| `awslabs.eks-mcp-server` | Query EKS clusters, inspect pods, stream logs, apply manifests |
-| `awslabs.terraform-mcp-server` | Run Terraform commands, search provider docs, run Checkov scans |
-| `awslabs.aws-pricing-mcp-server` | Live AWS pricing lookups and cost analysis reports |
-| `awslabs.core-mcp-server` | MCP orchestration layer (deprecated, kept for compatibility) |
-
-**Skills** — domain-specific knowledge packs that improve how Claude reasons about certain topics. The `terraform-skill` is installed, giving Claude deeper context for Terraform module patterns, testing strategies, security scanning, and CI/CD workflows specific to infrastructure-as-code.
-
----
-
-### Part 1 — System Design Foundations
-[`docs/part1-system-design.md`](docs/part1-system-design.md)
-
-We start with system design concepts specifically for cloud and DevOps. This is important whether you're a beginner, intermediate, or senior engineer — because companies don't choose tools randomly. They think about architecture patterns, deployment strategies, scalability, reliability, and cost tradeoffs.
-
-We cover 12 core system design pillars used in modern DevOps architectures, and connect each one directly to something running in this project.
-
----
-
-### Part 2 — Understanding the Workflow
-[`docs/part2-workflow.md`](docs/part2-workflow.md)
-
-Before writing any code or deployment configs, you need to understand how the entire system flows:
-
-- What services we're building and how they communicate
-- How the pipeline works
-- How code moves from developer → CI → deployment → production → AIOps
-
-This is where the full picture comes together — including how AI fits into the workflow.
-
----
-
-### Part 3 — DevOps Project Implementation
-[`projects/README.md`](projects/README.md)
-
-Then we actually build the project. You'll see:
-
-- Docker containers and Docker Compose
-- Kubernetes deployments on EKS
-- CI/CD pipelines with GitHub Actions
-- GitOps automation with ArgoCD
-- Infrastructure provisioning with Terraform
-- Observability with Prometheus and Grafana
-
----
-
-### Part 4 — AIOps Integration
-[`projects/aiops-assistant/README.md`](projects/aiops-assistant/README.md)
-
-Finally, we explore how AI helps with:
-
-- Monitoring and anomaly detection
-- Log analysis at scale
-- Incident response automation
-- DevOps troubleshooting
-
-Because modern DevOps is no longer just automation — it's **automation + intelligence**.
-
----
-
-## Bonus Challenge
-
-You'll get access to this entire repository.
-
-But there's a catch.
-
-The repository includes **intentional issues and troubleshooting tasks**.
-
-Why? Because AI has made things easier. But if you want to grow as an engineer, you must learn how to break systems, debug systems, and fix systems.
-
-Once you implement the project:
-
-1. Fork the repository
-2. Deploy the system
-3. Troubleshoot the issues
-4. Share what you learned — and tag me so I know you're building along
-
----
-
-## Tech Stack
+## Tech stack
 
 | Layer | Technology |
 |-------|-----------|
-| Application | React, Node.js, PostgreSQL |
+| Application | React, Node.js / TypeScript, PostgreSQL |
 | Containers | Docker, Docker Compose |
-| Orchestration | Kubernetes (AWS EKS) |
-| Infrastructure | Terraform |
-| CI/CD | GitHub Actions |
+| Orchestration | Kubernetes (AWS EKS 1.34) |
+| Infrastructure | Terraform (modular: VPC, EKS, ECR, ArgoCD) |
+| CI/CD | GitHub Actions (parallel matrix build) |
+| Registry | Amazon ECR |
 | GitOps | ArgoCD + Kustomize |
-| Monitoring | Prometheus + Grafana |
-| Log Forwarding | AWS Fluent Bit → CloudWatch |
-| AIOps | AWS Bedrock Agent (Kira) |
-| AI Assistant | Claude Code + MCP Servers |
+| Metrics | Prometheus (kube-prometheus-stack) |
+| Dashboards | Grafana |
+| Log forwarding | AWS Fluent Bit → CloudWatch |
+| AIOps | AWS Bedrock Agent (Amazon Nova Lite) + Lambda action groups |
+| AI UI | Streamlit |
+
+---
+
+## Repository structure
+
+```
+enterprise-cloudops-ai-platform/
+├── projects/
+│   ├── README.md                  # Full step-by-step deployment guide
+│   ├── boutique-microservices/    # The application (7 services + Postgres)
+│   ├── Infrastructure/            # Terraform modules for AWS / EKS
+│   └── aiops-assistant/           # Bedrock agent "Kira", Lambdas, Streamlit UI
+├── gitops/
+│   ├── argo-cd.yml                # ArgoCD Application manifest
+│   ├── kustomization.yml          # Kustomize entry point
+│   └── k8s/                       # Deployments, Services, StatefulSet, ServiceMonitor
+├── docs/
+│   └── PROJECT-DEEP-DIVE.md       # Detailed walkthrough + interview prep
+└── .github/workflows/ci.yml       # CI pipeline (build → push → update manifests)
+```
+
+---
+
+## How it works (by layer)
+
+**Application.** Seven services — a React frontend, an API gateway, and `auth`,
+`product-service`, `order-service`, `orders`, and `user-service` — backed by PostgreSQL.
+Each service owns its own database (the microservices data-ownership pattern); the
+gateway is the single entry point and routes requests to the right service.
+
+**Build & ship.** A push to `main` triggers GitHub Actions, which builds all seven
+images in parallel (a matrix job) and pushes them to ECR, then rewrites the image tags
+in `gitops/k8s/` to the new commit SHA.
+
+**Deliver.** ArgoCD watches `gitops/` and reconciles the cluster to match Git. Manual
+changes (e.g. deleting or scaling a deployment) are detected as drift and — with
+self-heal enabled — reverted automatically.
+
+**Observe.** Every backend exposes a `/metrics` endpoint; a `ServiceMonitor` tells
+Prometheus to scrape them. Grafana ships with a pre-loaded dashboard (request rate,
+latency, error rate, CPU/memory, pod restarts, service health). Fluent Bit runs as a
+DaemonSet and forwards pod logs to CloudWatch.
+
+**Diagnose with AI.** "Kira" is a Bedrock agent that reasons like an SRE. When asked a
+question, it decides which tools to call — three Lambda functions that read CloudWatch
+logs, Prometheus metrics, and EKS/cluster health — correlates the results, and returns a
+root cause plus remediation steps. A Streamlit chat UI sits on top.
+
+---
+
+## Deploy it yourself
+
+Full instructions are in [`projects/README.md`](projects/README.md). High level:
+
+1. **Local:** build the React frontend, then `docker compose up -d --build` in `projects/boutique-microservices/`.
+2. **Infra:** `terraform init && terraform apply` in `projects/Infrastructure/` (creates VPC, EKS, ECR, ArgoCD, monitoring).
+3. **Images:** run the GitHub Actions pipeline (or build/push manually) to populate ECR.
+4. **Deploy:** `kubectl apply -k gitops/`, then run the DB restore job.
+5. **GitOps:** `kubectl apply -f gitops/argo-cd.yml -n argocd`.
+6. **AIOps (optional):** install Fluent Bit, deploy the three Lambdas + Bedrock agent (`projects/aiops-assistant/`), run the Streamlit UI.
+
+> ⚠️ **Cost:** EKS, an on-demand node, and a LoadBalancer bill hourly. Run
+> `terraform destroy` and remove the LoadBalancer / Bedrock / Lambda resources when done.
+
+---
+
+## Screenshots
+
+> _Add your captured screenshots here._
+
+| | |
+|---|---|
+| Storefront | _`docs/img/storefront.png`_ |
+| Grafana dashboard | _`docs/img/grafana.png`_ |
+| Prometheus targets | _`docs/img/prometheus.png`_ |
+| Kira diagnosing a down service | _`docs/img/kira-diagnosis.png`_ |
+
+---
+
+## Troubleshooting & lessons learned
+
+Real problems hit during deployment and how they were resolved — the debugging is as
+much the point as the happy path.
+
+| Symptom | Root cause | Fix |
+|---------|-----------|-----|
+| `terraform apply` → `Error: Unauthorized` on namespace creation | The Kubernetes/Helm providers used a short-lived EKS auth token that expired during the long cluster + add-on build | Re-run apply (fresh token), or switch the provider to an `exec` plugin (`aws eks get-token`) |
+| Pods stuck in `InvalidImageName` | Deployment manifests still contained the literal `<AWS_ACCOUNT_ID>` placeholder | Substituted the real account ID; pushed images to ECR first |
+| `auth`/`orders` crash-looping (`3D000`) | In Kubernetes, Postgres starts empty — init scripts don't auto-run like in Docker Compose | Ran the database restore Job to create the four databases and seed data |
+| Fluent Bit `NoCredentialProviders` / IMDS 401 | EKS node metadata hop limit of 1 blocks pods from reaching IMDSv2 | `aws ec2 modify-instance-metadata-options --http-put-response-hop-limit 2` |
+| IAM `create-role` validation error | Role description contained a non-ASCII em-dash | Replaced em-dashes with hyphens |
+| Bedrock agent reported "all healthy" after scaling a service to 0 | Smaller model reused the previous tool result instead of re-fetching | Forced a fresh tool call (new session / explicit re-check) |
+| Manual `kubectl scale --replicas=0` instantly reverted | ArgoCD self-heal reconciled the drift back to the Git-declared state | Demonstrates GitOps working as intended; disable auto-sync to test failure scenarios |
+| Windows/Git Bash path mangling (`/c/Program Files/Git/...`) | MSYS auto-converts leading-slash arguments | `export MSYS_NO_PATHCONV=1`, `pwd -W`, and `python` instead of `python3` |
+
+---
+
+## Acknowledgements
+
+Built by following and adapting a DevOps + AIOps tutorial series, then debugged and
+extended end-to-end on real AWS infrastructure.

@@ -25,20 +25,3 @@ configMapGenerator:
 
 generatorOptions:
   disableNameSuffixHash: true
-
-# Dynamically intercept and patch image registries and tags natively
-images:
-  - name: <AWS_ACCOUNT_ID>.dkr.ecr.us-east-1.amazonaws.com/auth
-    newName: 508972673973.dkr.ecr.us-east-1.amazonaws.com/auth
-  - name: <AWS_ACCOUNT_ID>.dkr.ecr.us-east-1.amazonaws.com/gateway
-    newName: 508972673973.dkr.ecr.us-east-1.amazonaws.com/gateway
-  - name: <AWS_ACCOUNT_ID>.dkr.ecr.us-east-1.amazonaws.com/orders
-    newName: 508972673973.dkr.ecr.us-east-1.amazonaws.com/orders
-  - name: <AWS_ACCOUNT_ID>.dkr.ecr.us-east-1.amazonaws.com/order-service
-    newName: 508972673973.dkr.ecr.us-east-1.amazonaws.com/order-service
-  - name: <AWS_ACCOUNT_ID>.dkr.ecr.us-east-1.amazonaws.com/product-service
-    newName: 508972673973.dkr.ecr.us-east-1.amazonaws.com/product-service
-  - name: <AWS_ACCOUNT_ID>.dkr.ecr.us-east-1.amazonaws.com/user-service
-    newName: 508972673973.dkr.ecr.us-east-1.amazonaws.com/user-service
-  - name: <AWS_ACCOUNT_ID>.dkr.ecr.us-east-1.amazonaws.com/frontend
-    newName: 508972673973.dkr.ecr.us-east-1.amazonaws.com/frontend

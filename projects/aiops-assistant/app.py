@@ -42,8 +42,8 @@ st.markdown("""
     @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=DM+Sans:wght@400;500;700&display=swap');
 
     .stApp {
-        background-color: #0a0e14;
-        color: #c5c8c6;
+        background-color: #1a1033;
+        color: #ffffff;
     }
 
     .main-header {
@@ -61,7 +61,7 @@ st.markdown("""
     }
     .main-header p {
         font-family: 'DM Sans', sans-serif;
-        color: #5a6270;
+        color: #22d3ee;
         font-size: 0.85rem;
         margin: 0.3rem 0 0 0;
     }
@@ -119,7 +119,7 @@ st.markdown("""
     .stChatInput textarea {
         font-family: 'DM Sans', sans-serif !important;
         background: #0d1117 !important;
-        color: #c5c8c6 !important;
+        color: #ffffff !important;
     }
 
     [data-testid="stSidebar"] {
@@ -150,6 +150,7 @@ st.markdown("""
     #MainMenu { visibility: hidden; }
     footer { visibility: hidden; }
     header { visibility: hidden; }
+[data-testid="stChatMessage"], [data-testid="stChatMessage"] p, [data-testid="stChatMessage"] li { color: #ffffff !important; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -239,11 +240,11 @@ st.markdown(f"""
     <div class="status-dot"></div>
     <span style="color: #22d3ee;">ONLINE</span>
     <span style="color: #2a3040;">|</span>
-    <span style="color: #5a6270;">Session: {st.session_state.session_id[:8]}</span>
+    <span style="color: #22d3ee;">Session: {st.session_state.session_id[:8]}</span>
     <span style="color: #2a3040;">|</span>
-    <span style="color: #5a6270;">Region: {AWS_REGION}</span>
+    <span style="color: #22d3ee;">Region: {AWS_REGION}</span>
     <span style="color: #2a3040;">|</span>
-    <span style="color: #5a6270;">Agent: {AGENT_ID}</span>
+    <span style="color: #22d3ee;">Agent: {AGENT_ID}</span>
 </div>
 """, unsafe_allow_html=True)
 
@@ -301,7 +302,7 @@ with st.sidebar:
     st.markdown("""
     <div style="font-family: 'JetBrains Mono', monospace; padding: 1rem 0;">
         <h3 style="color: #22d3ee; font-size: 1rem;">⚡ KIRA</h3>
-        <p style="color: #5a6270; font-size: 0.8rem;">AIOps Assistant v1.0</p>
+        <p style="color: #22d3ee; font-size: 0.8rem;">AIOps Assistant v1.0</p>
     </div>
     """, unsafe_allow_html=True)
 

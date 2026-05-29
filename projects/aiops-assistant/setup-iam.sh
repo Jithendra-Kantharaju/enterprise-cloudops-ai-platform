@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
 # =============================================================================
-# AIOps Assistant — IAM Setup Script
+# AIOps Assistant - IAM Setup Script
 #
 # Creates all IAM roles and policies required for the project:
-#   1. aiops-lambda-role       — used by all 3 Lambda functions
-#   2. aiops-bedrock-agent-role — used by the Bedrock Agent
+#   1. aiops-lambda-role       - used by all 3 Lambda functions
+#   2. aiops-bedrock-agent-role - used by the Bedrock Agent
 #
 # Usage:
 #   chmod +x setup-iam.sh
@@ -18,7 +18,7 @@ ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
 
 echo ""
 echo "============================================="
-echo " AIOps — IAM Setup"
+echo " AIOps - IAM Setup"
 echo " Account : $ACCOUNT_ID"
 echo " Region  : $REGION"
 echo "============================================="
@@ -54,7 +54,7 @@ else
   aws iam create-role \
     --role-name "$LAMBDA_ROLE_NAME" \
     --assume-role-policy-document "$LAMBDA_TRUST_POLICY" \
-    --description "Role for AIOps Lambda functions — fetch logs, metrics, and EKS health" \
+    --description "Role for AIOps Lambda functions - fetch logs, metrics, and EKS health" \
     --query 'Role.RoleName' --output text
   echo "  ✓ Created: $LAMBDA_ROLE_NAME"
 fi
@@ -140,7 +140,7 @@ else
   aws iam create-role \
     --role-name "$AGENT_ROLE_NAME" \
     --assume-role-policy-document "$BEDROCK_TRUST_POLICY" \
-    --description "Role for Bedrock Agent — AIOps assistant (Kira)" \
+    --description "Role for Bedrock Agent - AIOps assistant (Kira)" \
     --query 'Role.RoleName' --output text
   echo "  ✓ Created: $AGENT_ROLE_NAME"
 fi

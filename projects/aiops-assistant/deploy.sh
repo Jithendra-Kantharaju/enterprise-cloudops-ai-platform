@@ -24,7 +24,7 @@ REGION="us-east-1"
 ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
 AGENT_ROLE_NAME="aiops-bedrock-agent-role"
 AGENT_NAME="aiops-assistant"
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -W)"
 
 echo ""
 echo "============================================="
@@ -132,7 +132,7 @@ fi
 echo ""
 echo "[3/3] Adding action groups and preparing agent..."
 
-python3 - <<PYEOF
+python - <<PYEOF
 import boto3, json, sys
 
 region = "$REGION"
@@ -206,7 +206,7 @@ echo " Region     : $REGION"
 echo ""
 echo " Next steps:"
 echo "  1. Generate sample data:"
-echo "     python3 scripts/generate_sample_data.py --region $REGION"
+echo "     python scripts/generate_sample_data.py --region $REGION"
 echo ""
 echo "  2. Test in Bedrock Console:"
 echo "     https://$REGION.console.aws.amazon.com/bedrock/home?region=$REGION#/agents/$AGENT_ID"

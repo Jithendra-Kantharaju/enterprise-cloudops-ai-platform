@@ -1,6 +1,6 @@
 # AIOps Assistant — Kira
 
-An AI-powered SRE assistant built on AWS Bedrock Agent. Kira diagnoses production incidents by querying CloudWatch Logs, CloudWatch Metrics (via Prometheus), and EKS cluster health — then responds with root cause, evidence, and fix recommendations.
+An AI-powered SRE assistant built on AWS Bedrock Agent. Kira diagnoses production incidents by querying CloudWatch Logs, CloudWatch Metrics (via Prometheus and Grafana), and EKS cluster health — then responds with root cause, evidence, and fix recommendations.
 
 ---
 

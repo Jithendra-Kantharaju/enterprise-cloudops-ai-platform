@@ -1,226 +1,234 @@
-# AIOps Assistant — Kira
+# Enterprise CloudOps AI Platform
 
-An AI-powered SRE assistant built on AWS Bedrock Agent. Kira diagnoses production incidents by querying CloudWatch Logs, CloudWatch Metrics (via Prometheus and Grafana), and EKS cluster health — then responds with root cause, evidence, and fix recommendations.
+An end-to-end **DevOps + AIOps** platform: a seven-service e-commerce microservices
+application deployed on **AWS EKS**, provisioned with **Terraform**, delivered through a
+**GitHub Actions** CI/CD pipeline and **ArgoCD** GitOps, observed with
+**Prometheus + Grafana**, and operated by an **AI incident-diagnosis assistant ("Kira")**
+built on **AWS Bedrock**.
+
+<p align="center">
+  <img src="https://raw.githubusercontent.com/Jithendra-Kantharaju/enterprise-cloudops-ai-platform/main/Docs/Architecture_image.png" alt="Enterprise CloudOps AI Platform architecture" width="940">
+</p>
+
+This repository takes an application from a local Docker Compose setup all the way to a
+self-healing, observable, AI-assisted production platform on Kubernetes.
+
+---
+
+## What this project demonstrates
+
+- **Infrastructure as Code:** entire AWS footprint (VPC, EKS, node groups, ECR, IAM, add-ons) defined in modular Terraform.
+- **Container orchestration:** microservices packaged as Docker images and run on a managed Kubernetes (EKS) cluster.
+- **CI/CD:** GitHub Actions builds and pushes seven service images to ECR in parallel and updates the deployment manifests.
+- **GitOps:** ArgoCD continuously reconciles the cluster to the Git-declared state (self-healing, drift detection).
+- **Observability:** every service exposes `/metrics`; Prometheus scrapes them, Grafana visualises them, Fluent Bit ships logs to CloudWatch.
+- **AIOps:** a Bedrock agent answers natural-language questions ("are any services down?") by calling Lambda tools that read live logs, metrics, and cluster health, then returns a root-cause diagnosis.
+
+---
+
+## Demo video
+
+A short walkthrough of the platform and the Kira AIOps assistant diagnosing a live incident:
+
+<p align="center">
+  <a href="https://youtu.be/REPLACE_WITH_YOUR_VIDEO_ID">
+    <img src="https://raw.githubusercontent.com/Jithendra-Kantharaju/enterprise-cloudops-ai-platform/main/Docs/devops-aiops-UI-3.0.png" alt="Watch the AIOps demo" width="800">
+  </a>
+</p>
+
+> Replace `REPLACE_WITH_YOUR_VIDEO_ID` with your uploaded YouTube link.
 
 ---
 
 ## Architecture
 
-```
-Streamlit UI (app.py)
-      │
-      ▼
-Bedrock Agent (Kira)
-      │
-      ├── fetch_logs         → CloudWatch Logs
-      ├── fetch_metrics      → Prometheus (ELB endpoint)
-      └── fetch_service_health → EKS cluster + node groups
-```
+```mermaid
+flowchart TB
+    user([User / Engineer])
 
----
+    subgraph AWS["AWS (us-east-1)"]
+        subgraph EKS["EKS Cluster"]
+            fe["Frontend (React + nginx)"]
+            gw["API Gateway"]
+            subgraph svc["Backend Microservices"]
+                auth["auth"]
+                prod["product-service"]
+                ordsvc["order-service"]
+                ords["orders"]
+                usr["user-service"]
+            end
+            pg[("PostgreSQL\nauth/products/orders/users DBs")]
+            subgraph mon["Monitoring"]
+                prom["Prometheus"]
+                graf["Grafana"]
+            end
+            argo["ArgoCD"]
+            fb["Fluent Bit"]
+        end
+        ecr["ECR (7 image repos)"]
+        cw["CloudWatch Logs"]
+        subgraph bedrock["AIOps"]
+            agent["Bedrock Agent 'Kira' (Nova Lite)"]
+            l1["Lambda: fetch_logs"]
+            l2["Lambda: fetch_metrics"]
+            l3["Lambda: fetch_health"]
+        end
+    end
 
-## Prerequisites
+    gh["GitHub Actions CI"] -->|build + push| ecr
+    gh -->|update image tags| argo
+    argo -->|sync| EKS
 
-- AWS account with access to Bedrock (model access enabled for your chosen model)
-- EKS cluster running with Prometheus exposed via a LoadBalancer service
-- AWS CLI configured (`aws configure`)
-- Python 3.10+
+    user -->|shops| fe --> gw --> svc --> pg
+    svc -->|/metrics| prom --> graf
+    fb -->|pod logs| cw
 
----
-
-## Step 1: Set Up IAM Roles
-
-Run the provided script to create both required IAM roles:
-
-```bash
-chmod +x setup-iam.sh
-./setup-iam.sh
-```
-
-This creates:
-
-| Role | Used By | Permissions |
-|------|---------|-------------|
-| `aiops-lambda-role` | All 3 Lambda functions | CloudWatch Logs read, EKS describe, Lambda basic execution |
-| `aiops-bedrock-agent-role` | Bedrock Agent | Invoke the 3 Lambda functions, invoke Bedrock models |
-
----
-
-## Step 2: Create the Lambda Functions
-
-Create the following 3 Lambda functions in the AWS Console (or via CLI). Use the code from the `lambda/` directory.
-
-| Function Name | Code File | Execution Role |
-|---------------|-----------|----------------|
-| `aiops-fetch-logs` | `lambda/fetch_logs/lambda_function.py` | `aiops-lambda-role` |
-| `aiops-fetch-metrics` | `lambda/fetch_metrics/lambda_function.py` | `aiops-lambda-role` |
-| `aiops-fetch-health` | `lambda/fetch_health/lambda_function.py` | `aiops-lambda-role` |
-
-Runtime: **Python 3.12** | Timeout: **30 seconds**
-
----
-
-## Step 3: Update the Prometheus URL
-
-Both `fetch_metrics` and `fetch_health` lambdas query Prometheus directly. Update the `PROMETHEUS_URL` placeholder in each file before uploading the code.
-
-In `lambda/fetch_metrics/lambda_function.py`:
-```python
-PROMETHEUS_URL = "http://<YOUR_PROMETHEUS_ELB_URL>:9090"
-```
-
-In `lambda/fetch_health/lambda_function.py`:
-```python
-PROMETHEUS_URL = "http://<YOUR_PROMETHEUS_ELB_URL>:9090"
-```
-
-To get the Prometheus ELB URL, expose Prometheus as a LoadBalancer service:
-
-```bash
-kubectl patch svc kube-prometheus-stack-prometheus -n monitoring \
-  -p '{"spec": {"type": "LoadBalancer"}}'
-
-kubectl get svc kube-prometheus-stack-prometheus -n monitoring
-# Copy the EXTERNAL-IP value — that is your ELB URL
+    user -->|chat| streamlit["Streamlit UI"] --> agent
+    agent --> l1 --> cw
+    agent --> l2 --> prom
+    agent --> l3 --> EKS
 ```
 
 ---
 
-## Step 4: Deploy the Bedrock Agent
+## Tech stack
 
-Run the deploy script. It will:
-- Verify the Lambda functions and IAM role exist
-- Set Lambda timeouts to 30s and add Bedrock invoke permissions
-- Create the Bedrock Agent (`aiops-assistant`) with the Kira system prompt
-- Attach all 3 action groups with their OpenAPI schemas
-- Prepare the agent
-
-```bash
-chmod +x deploy.sh
-./deploy.sh
-```
-
-At the end, the script prints your **Agent ID** — keep it for the next step.
-
----
-
-## Step 5: (Optional) Generate Sample Data
-
-Populate CloudWatch Logs with realistic error scenarios to test Kira:
-
-```bash
-python3 scripts/generate_sample_data.py --region us-east-1
-```
-
-This writes 100 realistic log events (503 errors, OOM kills, connection pool exhaustion, etc.) to `/app/production`.
+| Layer | Technology |
+|-------|-----------|
+| Application | React, Node.js / TypeScript, PostgreSQL |
+| Containers | Docker, Docker Compose |
+| Orchestration | Kubernetes (AWS EKS 1.34) |
+| Infrastructure | Terraform (modular: VPC, EKS, ECR, ArgoCD) |
+| CI/CD | GitHub Actions (parallel matrix build) |
+| Registry | Amazon ECR |
+| GitOps | ArgoCD + Kustomize |
+| Metrics | Prometheus (kube-prometheus-stack) |
+| Dashboards | Grafana |
+| Log forwarding | AWS Fluent Bit to CloudWatch |
+| AIOps | AWS Bedrock Agent (Amazon Nova Lite) + Lambda action groups |
+| AI UI | Streamlit |
 
 ---
 
-## Step 6: Run the Streamlit UI
+## Screenshots
 
-```bash
-cp .env.example .env
-```
+### Application and delivery
 
-Edit `.env` and fill in your values:
+<table>
+  <tr>
+    <td width="50%"><b>Storefront (React frontend)</b><br><img src="https://raw.githubusercontent.com/Jithendra-Kantharaju/enterprise-cloudops-ai-platform/main/Docs/devops-aiops-app.png" width="440"></td>
+    <td width="50%"><b>ECR: 7 image repositories</b><br><img src="https://raw.githubusercontent.com/Jithendra-Kantharaju/enterprise-cloudops-ai-platform/main/Docs/devops-aiops-AWS.png" width="440"></td>
+  </tr>
+  <tr>
+    <td width="50%"><b>ArgoCD: synced application tree</b><br><img src="https://raw.githubusercontent.com/Jithendra-Kantharaju/enterprise-cloudops-ai-platform/main/Docs/devops-aiops-argocd1.png" width="440"></td>
+    <td width="50%"><b>ArgoCD: application overview</b><br><img src="https://raw.githubusercontent.com/Jithendra-Kantharaju/enterprise-cloudops-ai-platform/main/Docs/devops-aiops-argocd2.png" width="440"></td>
+  </tr>
+</table>
 
-```env
-AWS_REGION=us-east-1
-BEDROCK_AGENT_ID=<YOUR_AGENT_ID>
-BEDROCK_AGENT_ALIAS_ID=TSTALIASID
+### Observability
 
-# Optional — omit to use your AWS CLI profile / SSO / IAM role:
-# AWS_ACCESS_KEY_ID=<YOUR_ACCESS_KEY>
-# AWS_SECRET_ACCESS_KEY=<YOUR_SECRET_KEY>
-# AWS_SESSION_TOKEN=<YOUR_SESSION_TOKEN>
-```
+<table>
+  <tr>
+    <td width="50%"><b>Grafana: live service dashboard</b><br><img src="https://raw.githubusercontent.com/Jithendra-Kantharaju/enterprise-cloudops-ai-platform/main/Docs/devops-aiops-grafana1.png" width="440"></td>
+    <td width="50%"><b>Prometheus: scrape targets UP</b><br><img src="https://raw.githubusercontent.com/Jithendra-Kantharaju/enterprise-cloudops-ai-platform/main/Docs/devops-aiops-Prometheus.png" width="440"></td>
+  </tr>
+</table>
 
-Install dependencies and start the UI:
+### AIOps assistant "Kira"
 
-```bash
-pip install -r requirements.txt
-streamlit run app.py
-```
+Kira reasons like an SRE: it queries live logs, metrics, and cluster health through Lambda
+tools, then answers in plain language. The sequence below shows it confirming a healthy
+cluster, listing running services, and then correctly detecting a service that was
+deliberately scaled to zero.
 
-Open **http://localhost:8501** in your browser.
-
----
-
-## Project Structure
-
-```
-aiops-assistant/
-├── app.py                  # Streamlit chat UI
-├── deploy.sh               # Bedrock Agent deployment script
-├── setup-iam.sh            # IAM roles and policies setup
-├── requirements.txt        # Python dependencies
-├── .env.example            # Environment variable template
-├── lambda/
-│   ├── fetch_logs/         # CloudWatch Logs query
-│   ├── fetch_metrics/      # Prometheus metrics query
-│   └── fetch_health/       # EKS cluster health check
-├── schemas/
-│   ├── fetch_logs.json     # OpenAPI schema for fetch_logs
-│   ├── fetch_metrics.json  # OpenAPI schema for fetch_metrics
-│   └── fetch_health.json   # OpenAPI schema for fetch_health
-└── scripts/
-    └── generate_sample_data.py  # Seed CloudWatch with test errors
-```
+<p align="center"><img src="https://raw.githubusercontent.com/Jithendra-Kantharaju/enterprise-cloudops-ai-platform/main/Docs/devops-aiops-UI.png" width="800"></p>
+<p align="center"><img src="https://raw.githubusercontent.com/Jithendra-Kantharaju/enterprise-cloudops-ai-platform/main/Docs/devops-aiops-UI-2.0.png" width="800"></p>
+<p align="center"><img src="https://raw.githubusercontent.com/Jithendra-Kantharaju/enterprise-cloudops-ai-platform/main/Docs/devops-aiops-UI-3.0.png" width="800"></p>
 
 ---
 
-## Sample Questions to Ask Kira
+## How it works (by layer)
 
-- Why are we seeing 503 errors in the last hour?
-- Is CPU usage high across the boutique services?
-- Check database connections and latency
-- Are all pods healthy? Any restarts?
-- What are the most frequent errors in the last 2 hours?
+**Application.** Seven services (a React frontend, an API gateway, and `auth`,
+`product-service`, `order-service`, `orders`, and `user-service`) backed by PostgreSQL.
+Each service owns its own database (the data-ownership pattern); the gateway is the single
+entry point and routes requests to the right service.
+
+**Build and ship.** A push to `main` triggers GitHub Actions, which builds all seven
+images in parallel and pushes them to ECR, then rewrites the image tags in `gitops/k8s/`.
+
+**Deliver.** ArgoCD watches `gitops/` and reconciles the cluster to match Git. Manual
+changes (such as scaling a deployment by hand) are detected as drift and, with self-heal
+enabled, reverted automatically.
+
+**Observe.** Every backend exposes a `/metrics` endpoint; a `ServiceMonitor` tells
+Prometheus to scrape it. Grafana ships a pre-loaded dashboard, and Fluent Bit runs as a
+DaemonSet forwarding pod logs to CloudWatch.
+
+**Diagnose with AI.** "Kira" is a Bedrock agent. When asked a question it decides which
+tools to call (three Lambda functions reading CloudWatch logs, Prometheus metrics, and EKS
+health), correlates the results, and returns a root cause plus remediation steps. A
+Streamlit chat UI sits on top.
 
 ---
 
-## Potential Issues
+## Deploy it yourself
 
-### Bedrock model access not enabled
-The deploy script will fail at agent creation if model access hasn't been requested. Go to **AWS Console → Bedrock → Model access** and enable access for the model used in `deploy.sh` before running the script.
+Full instructions are in [`projects/README.md`](projects/README.md). High level:
 
-### Prometheus URL unreachable from Lambda
-`fetch_metrics` and `fetch_health` make outbound HTTP calls to the Prometheus ELB. If Lambda is deployed inside a VPC without a NAT gateway or internet gateway route, these calls will time out. Either:
-- Keep Lambda outside a VPC (default), or
-- Ensure the VPC has a route to the internet and the Prometheus ELB security group allows inbound on port 9090.
+1. **Local:** build the React frontend, then `docker compose up -d --build` in `projects/boutique-microservices/`.
+2. **Infra:** `terraform init && terraform apply` in `projects/Infrastructure/`.
+3. **Images:** run the GitHub Actions pipeline (or build/push manually) to populate ECR.
+4. **Deploy:** `kubectl apply -k gitops/`, then run the DB restore job.
+5. **GitOps:** `kubectl apply -f gitops/argo-cd.yml -n argocd`.
+6. **AIOps (optional):** install Fluent Bit, deploy the three Lambdas + Bedrock agent (`projects/aiops-assistant/`), run the Streamlit UI.
 
-### Agent stuck in PREPARING state
-After running `deploy.sh`, the agent status shows `PREPARING`. This is normal and takes 30–60 seconds. If it stays in this state, check the Bedrock console for validation errors — usually caused by a malformed OpenAPI schema or a Lambda ARN that doesn't exist.
+> Cost: EKS, an on-demand node, and a LoadBalancer bill hourly. Run `terraform destroy`
+> and remove the LoadBalancer / Bedrock / Lambda resources when done.
 
-### Streamlit shows "NOT CONFIGURED"
-The app requires `BEDROCK_AGENT_ID` and `BEDROCK_AGENT_ALIAS_ID` to be set in `.env`. If you started Streamlit before populating `.env`, stop it and restart — `load_dotenv()` only reads the file at startup.
+---
 
-```bash
-# Stop and restart
-pkill -f "streamlit run app.py"
-streamlit run app.py
+## Repository structure
+
+```
+enterprise-cloudops-ai-platform/
+├── projects/
+│   ├── boutique-microservices/    # The application (7 services + Postgres)
+│   ├── Infrastructure/            # Terraform modules for AWS / EKS
+│   └── aiops-assistant/           # Bedrock agent "Kira", Lambdas, Streamlit UI
+├── gitops/
+│   ├── argo-cd.yml                # ArgoCD Application manifest
+│   ├── kustomization.yml          # Kustomize entry point
+│   └── k8s/                       # Deployments, Services, StatefulSet, ServiceMonitor
+├── Docs/
+│   ├── Project.md                 # Detailed walkthrough + interview prep
+│   ├── Architecture_image.png     # Architecture diagram
+│   └── *.png                      # Demo screenshots
+└── .github/workflows/ci.yml       # CI pipeline (build, push, update manifests)
 ```
 
-### fetch_logs returns no results
-The default log group is `/eks/boutique/pods`. This group is only created after Fluent Bit starts shipping logs. Make sure `aws-for-fluent-bit` is running:
+A detailed component-by-component walkthrough and interview-prep guide lives in
+[`Docs/Project.md`](Docs/Project.md).
 
-```bash
-kubectl get pods -n amazon-cloudwatch
-```
+---
 
-If the log group doesn't exist yet, run the sample data generator first (Step 5) which creates `/app/production`.
+## Troubleshooting and lessons learned
 
-### fetch_health uses wrong cluster name
-The Lambda defaults to cluster name `eks-cluster`. If your cluster has a different name, update `DEFAULT_CLUSTER` in `lambda/fetch_health/lambda_function.py` before uploading the function code.
+Real problems hit during deployment and how they were resolved.
 
-### Lambda execution role missing permissions
-If `fetch_health` returns an access denied error on `eks:DescribeCluster`, the inline policy may not have propagated yet (IAM can take ~10–15 seconds). Wait and retry. If it persists, verify the inline policy is attached:
+| Symptom | Root cause | Fix |
+|---------|-----------|-----|
+| `terraform apply` -> `Error: Unauthorized` | Short-lived EKS auth token expired during the long cluster build | Re-run apply (fresh token), or use an `exec` plugin (`aws eks get-token`) |
+| Pods stuck in `InvalidImageName` | Manifests still held the literal `<AWS_ACCOUNT_ID>` placeholder | Substituted the real account ID; pushed images to ECR first |
+| `auth`/`orders` crash-looping (`3D000`) | In Kubernetes, Postgres starts empty (no auto-run init scripts) | Ran the database restore Job to create and seed the four databases |
+| Fluent Bit `NoCredentialProviders` | Node IMDS hop limit of 1 blocked pods from reaching metadata | Raised the hop limit to 2 via `modify-instance-metadata-options` |
+| Agent reported "all healthy" after scaling a service to 0 | Smaller model reused the previous tool result instead of re-fetching | Forced a fresh tool call (new session / explicit re-check) |
+| `kubectl scale --replicas=0` instantly reverted | ArgoCD self-heal reconciled the drift back to Git state | GitOps working as intended; disable auto-sync to test failure scenarios |
+| Windows / Git Bash path mangling | MSYS auto-converts leading-slash arguments | `export MSYS_NO_PATHCONV=1`, `pwd -W`, and `python` instead of `python3` |
 
-```bash
-aws iam get-role-policy \
-  --role-name aiops-lambda-role \
-  --policy-name aiops-lambda-inline-policy
-```
+---
 
-### AWS credentials not resolving in Streamlit
-If `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY` are left blank in `.env`, boto3 falls back to the default credential chain (`~/.aws/credentials`, environment variables, IAM role). If none of those are configured, Bedrock calls will fail with an auth error. Either fill in the credentials in `.env` or ensure your terminal session has valid AWS credentials before starting Streamlit.
+## Acknowledgements
+
+Built by following and adapting a DevOps + AIOps tutorial series, then debugged and
+extended end-to-end on real AWS infrastructure.

@@ -4,27 +4,52 @@ kind: Kustomization
 namespace: boutique
 
 resources:
-  - namespace.yml
-  - secrets.yml
-  - k8s/database/statefulset.yml
-  - k8s/database/service.yml
-  - k8s/backend/gateway.yml
-  - k8s/backend/service-monitor.yml
-  - k8s/backend/auth.yml
-  - k8s/backend/product-service.yml
-  - k8s/backend/order-service.yml
-  - k8s/backend/orders.yml
-  - k8s/backend/user-service.yml
-  - k8s/frontend/deployment.yml
-  - k8s/ai-assistant/chroma.yml
-  - k8s/ai-assistant/deployment.yml
-  - k8s/ai-assistant/service-monitor.yml
-  - k8s/grafana-dashboard.yml
+- namespace.yml
+- secrets.yml
+- k8s/database/statefulset.yml
+- k8s/database/service.yml
+- k8s/backend/gateway.yml
+- k8s/backend/service-monitor.yml
+- k8s/backend/auth.yml
+- k8s/backend/product-service.yml
+- k8s/backend/order-service.yml
+- k8s/backend/orders.yml
+- k8s/backend/user-service.yml
+- k8s/frontend/deployment.yml
+- k8s/ai-assistant/chroma.yml
+- k8s/ai-assistant/deployment.yml
+- k8s/ai-assistant/service-monitor.yml
+- k8s/grafana-dashboard.yml
 
 configMapGenerator:
-  - name: boutique-db-dump
-    files:
-      - k8s/database/boutique_full.sql
+- files:
+  - k8s/database/boutique_full.sql
+  name: boutique-db-dump
 
 generatorOptions:
   disableNameSuffixHash: true
+images:
+- name: <AWS_ACCOUNT_ID>.dkr.ecr.us-east-1.amazonaws.com/ai-assistant
+  newName: 508972673973.dkr.ecr.us-east-1.amazonaws.com/ai-assistant
+  newTag: 0ed78b8139d5e555194a0bccce83dda85886c87c
+- name: <AWS_ACCOUNT_ID>.dkr.ecr.us-east-1.amazonaws.com/auth
+  newName: 508972673973.dkr.ecr.us-east-1.amazonaws.com/auth
+  newTag: 0ed78b8139d5e555194a0bccce83dda85886c87c
+- name: <AWS_ACCOUNT_ID>.dkr.ecr.us-east-1.amazonaws.com/frontend
+  newName: 508972673973.dkr.ecr.us-east-1.amazonaws.com/frontend
+  newTag: 0ed78b8139d5e555194a0bccce83dda85886c87c
+- name: <AWS_ACCOUNT_ID>.dkr.ecr.us-east-1.amazonaws.com/gateway
+  newName: 508972673973.dkr.ecr.us-east-1.amazonaws.com/gateway
+  newTag: 0ed78b8139d5e555194a0bccce83dda85886c87c
+- name: <AWS_ACCOUNT_ID>.dkr.ecr.us-east-1.amazonaws.com/order-service
+  newName: 508972673973.dkr.ecr.us-east-1.amazonaws.com/order-service
+  newTag: 0ed78b8139d5e555194a0bccce83dda85886c87c
+- name: <AWS_ACCOUNT_ID>.dkr.ecr.us-east-1.amazonaws.com/orders
+  newName: 508972673973.dkr.ecr.us-east-1.amazonaws.com/orders
+  newTag: 0ed78b8139d5e555194a0bccce83dda85886c87c
+- name: <AWS_ACCOUNT_ID>.dkr.ecr.us-east-1.amazonaws.com/product-service
+  newName: 508972673973.dkr.ecr.us-east-1.amazonaws.com/product-service
+  newTag: 0ed78b8139d5e555194a0bccce83dda85886c87c
+- name: <AWS_ACCOUNT_ID>.dkr.ecr.us-east-1.amazonaws.com/user-service
+  newName: 508972673973.dkr.ecr.us-east-1.amazonaws.com/user-service
+  newTag: 0ed78b8139d5e555194a0bccce83dda85886c87c

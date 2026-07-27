@@ -1,0 +1,75 @@
+[
+  {
+    "id": "p1",
+    "name": "Silk Evening Gown",
+    "category": "Dresses",
+    "price": 1899.00,
+    "original_price": 2299.00,
+    "inventory": 15,
+    "rating": 4.9,
+    "review_count": 49,
+    "description": "Beautiful floor-length gown crafted from premium silk."
+  },
+  {
+    "id": "p2",
+    "name": "Leather Handbag",
+    "category": "Bags",
+    "price": 599.00,
+    "original_price": 799.00,
+    "inventory": 25,
+    "rating": 4.8,
+    "review_count": 11,
+    "description": "Premium Italian leather tote bag."
+  },
+  {
+    "id": "p3",
+    "name": "Diamond Necklace",
+    "category": "Jewelry",
+    "price": 2999.00,
+    "original_price": 3999.00,
+    "inventory": 10,
+    "rating": 4.9,
+    "review_count": 52,
+    "description": "Stunning diamond pendant necklace."
+  },
+  {
+    "id": "p4",
+    "name": "Cashmere Coat",
+    "category": "Outerwear",
+    "price": 899.00,
+    "original_price": 1200.00,
+    "inventory": 20,
+    "rating": 4.7,
+    "review_count": 40,
+    "description": "Elegant wool and cashmere blend coat for winter."
+  },
+  {
+    "id": "p5",
+    "name": "Classic Aviator Sunglasses",
+    "category": "Accessories",
+    "price": 249.00,
+    "original_price": 320.00,
+    "inventory": 0,
+    "rating": 4.6,
+    "review_count": 18,
+    "description": "Timeless aviator sunglasses with polarized lenses. Currently out of stock."
+  },
+  {
+    "id": "policy-restock",
+    "type": "policy",
+    "title": "Restock policy",
+    "content": "Out-of-stock items are typically restocked within 2 to 3 weeks. You can ask the assistant whether a specific product is in stock."
+  },
+  {
+    "id": "policy-returns",
+    "type": "policy",
+    "title": "Returns and exchanges",
+    "content": "Items may be returned within 30 days of delivery for a full refund, provided they are unworn and in original condition."
+  },
+  {
+    "id": "policy-shipping",
+    "type": "policy",
+    "title": "Shipping",
+    "content": "Standard shipping is complimentary on all orders over $500. Orders below $500 have a flat $15 shipping fee. Express shipping is available at checkout."
+  }
+]

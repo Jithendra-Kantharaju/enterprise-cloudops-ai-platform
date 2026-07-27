@@ -1,9 +1,9 @@
 name: Boutique CI Pipeline
 
 on:
-#  push:
-#    branches:
-#      - main
+  push:
+    branches:
+      - main
   workflow_dispatch:
 
 env:
@@ -24,6 +24,7 @@ jobs:
           - product-service
           - user-service
           - frontend
+          - ai-assistant
 
     steps:
       - name: Checkout Code
@@ -46,6 +47,8 @@ jobs:
         run: |
           if [ "${{ matrix.service }}" == "frontend" ]; then
             BUILD_PATH="projects/boutique-microservices/frontend"
+          elif [ "${{ matrix.service }}" == "ai-assistant" ]; then
+            BUILD_PATH="projects/boutique-microservices/ai-assistant"
           else
             BUILD_PATH="projects/boutique-microservices/backend/services/${{ matrix.service }}"
           fi
@@ -85,7 +88,7 @@ jobs:
           NEW_TAG=${{ github.sha }}
 
           # Wrapped the placeholder target in single quotes to escape Linux shell redirection symbols (< >)
-          for SERVICE in auth gateway orders order-service product-service user-service frontend; do
+          for SERVICE in auth gateway orders order-service product-service user-service frontend ai-assistant; do
             kustomize edit set image '<AWS_ACCOUNT_ID>.dkr.ecr.us-east-1.amazonaws.com/'${SERVICE}=${ACCOUNT}.dkr.ecr.${REGION}.amazonaws.com/${SERVICE}:${NEW_TAG}
           done
 

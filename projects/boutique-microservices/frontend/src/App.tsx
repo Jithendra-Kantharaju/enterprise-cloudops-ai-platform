@@ -14,6 +14,7 @@ import Register from './pages/Register/Register';
 import Profile from './pages/Profile/Profile';
 import Orders from './pages/Orders/Orders';
 import ProtectedRoute from './components/ProtectedRoute/ProtectedRoute';
+import ChatWidget from './components/ChatWidget/ChatWidget';
 
 const theme = createTheme({
   palette: {
@@ -292,6 +293,7 @@ function App() {
               </Route>
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
+            <ChatWidget />
           </Router>
         </CartProvider>
       </AuthProvider>

@@ -11,4 +11,16 @@ module.exports = function (app) {
       },
     })
   );
+
+  // AI assistant (FastAPI) during `npm start` dev
+  app.use(
+    '/ai',
+    createProxyMiddleware({
+      target: 'http://localhost:8000',
+      changeOrigin: true,
+      pathRewrite: {
+        '^/ai': '', // /ai/ask -> /ask
+      },
+    })
+  );
 };

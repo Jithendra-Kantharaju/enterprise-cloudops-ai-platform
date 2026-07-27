@@ -1,0 +1,46 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ai-assistant
+  namespace: boutique
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ai-assistant
+  template:
+    metadata:
+      labels:
+        app: ai-assistant
+    spec:
+      containers:
+        - name: ai-assistant
+          image: 508972673973.dkr.ecr.us-east-1.amazonaws.com/ai-assistant:1ebec3729cd10fe1eeac6f0858fba58e2da07956
+          ports:
+            - name: http
+              containerPort: 8000
+          env:
+            - name: CHROMA_HOST
+              value: "chroma"
+            - name: CHROMA_PORT
+              value: "8000"
+            - name: OPENAI_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: boutique-secrets
+                  key: OPENAI_API_KEY
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ai-assistant
+  namespace: boutique
+spec:
+  selector:
+    app: ai-assistant
+  ports:
+    - name: http
+      protocol: TCP
+      port: 8000
+      targetPort: 8000
+  type: ClusterIP

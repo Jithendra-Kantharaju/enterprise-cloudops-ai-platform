@@ -184,6 +184,37 @@ services:
       - boutique-network
     restart: unless-stopped
 
+  # ChromaDB (vector database for the AI assistant)
+  chroma:
+    image: chromadb/chroma:0.5.23
+    container_name: boutique-chroma
+    ports:
+      - "8001:8000"
+    volumes:
+      - chroma_data:/chroma/chroma
+    networks:
+      - boutique-network
+    restart: unless-stopped
+
+  # AI Shopping Assistant (FastAPI + RAG)
+  ai-assistant:
+    build:
+      context: ./ai-assistant
+      dockerfile: Dockerfile
+    container_name: boutique-ai-assistant
+    env_file:
+      - ./ai-assistant/.env
+    environment:
+      - CHROMA_HOST=chroma
+      - CHROMA_PORT=8000
+    ports:
+      - "8000:8000"
+    depends_on:
+      - chroma
+    networks:
+      - boutique-network
+    restart: unless-stopped
+
   # Frontend
   frontend:
     image: nginx:alpine
@@ -197,6 +228,7 @@ services:
       - REACT_APP_API_URL=http://gateway:3001/api
     depends_on:
       - gateway
+      - ai-assistant
     networks:
       - boutique-network
     restart: unless-stopped
@@ -207,6 +239,8 @@ volumes:
   prometheus_data:
     driver: local
   grafana_data:
+    driver: local
+  chroma_data:
     driver: local
 
 networks:

@@ -1,0 +1,47 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: chroma
+  namespace: boutique
+spec:
+  serviceName: chroma
+  replicas: 1
+  selector:
+    matchLabels:
+      app: chroma
+  template:
+    metadata:
+      labels:
+        app: chroma
+    spec:
+      containers:
+        - name: chroma
+          image: chromadb/chroma:0.5.23
+          ports:
+            - containerPort: 8000
+          volumeMounts:
+            - name: chroma-data
+              mountPath: /chroma/chroma
+  volumeClaimTemplates:
+    - metadata:
+        name: chroma-data
+      spec:
+        accessModes:
+          - ReadWriteOnce
+        storageClassName: gp2
+        resources:
+          requests:
+            storage: 5Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: chroma
+  namespace: boutique
+spec:
+  clusterIP: None
+  selector:
+    app: chroma
+  ports:
+    - port: 8000
+      targetPort: 8000

@@ -16,6 +16,9 @@ resources:
   - k8s/backend/orders.yml
   - k8s/backend/user-service.yml
   - k8s/frontend/deployment.yml
+  - k8s/ai-assistant/chroma.yml
+  - k8s/ai-assistant/deployment.yml
+  - k8s/ai-assistant/service-monitor.yml
   - k8s/grafana-dashboard.yml
 
 configMapGenerator:

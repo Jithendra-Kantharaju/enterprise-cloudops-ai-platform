@@ -31,25 +31,25 @@ generatorOptions:
 images:
 - name: <AWS_ACCOUNT_ID>.dkr.ecr.us-east-1.amazonaws.com/ai-assistant
   newName: 508972673973.dkr.ecr.us-east-1.amazonaws.com/ai-assistant
-  newTag: f4e8a5b4679344bb02a96c8d06d17f88fac3774b
+  newTag: 2f576824930b51b2cfdf6e262b9eb9e0eaef98e7
 - name: <AWS_ACCOUNT_ID>.dkr.ecr.us-east-1.amazonaws.com/auth
   newName: 508972673973.dkr.ecr.us-east-1.amazonaws.com/auth
-  newTag: f4e8a5b4679344bb02a96c8d06d17f88fac3774b
+  newTag: 2f576824930b51b2cfdf6e262b9eb9e0eaef98e7
 - name: <AWS_ACCOUNT_ID>.dkr.ecr.us-east-1.amazonaws.com/frontend
   newName: 508972673973.dkr.ecr.us-east-1.amazonaws.com/frontend
-  newTag: f4e8a5b4679344bb02a96c8d06d17f88fac3774b
+  newTag: 2f576824930b51b2cfdf6e262b9eb9e0eaef98e7
 - name: <AWS_ACCOUNT_ID>.dkr.ecr.us-east-1.amazonaws.com/gateway
   newName: 508972673973.dkr.ecr.us-east-1.amazonaws.com/gateway
-  newTag: f4e8a5b4679344bb02a96c8d06d17f88fac3774b
+  newTag: 2f576824930b51b2cfdf6e262b9eb9e0eaef98e7
 - name: <AWS_ACCOUNT_ID>.dkr.ecr.us-east-1.amazonaws.com/order-service
   newName: 508972673973.dkr.ecr.us-east-1.amazonaws.com/order-service
-  newTag: f4e8a5b4679344bb02a96c8d06d17f88fac3774b
+  newTag: 2f576824930b51b2cfdf6e262b9eb9e0eaef98e7
 - name: <AWS_ACCOUNT_ID>.dkr.ecr.us-east-1.amazonaws.com/orders
   newName: 508972673973.dkr.ecr.us-east-1.amazonaws.com/orders
-  newTag: f4e8a5b4679344bb02a96c8d06d17f88fac3774b
+  newTag: 2f576824930b51b2cfdf6e262b9eb9e0eaef98e7
 - name: <AWS_ACCOUNT_ID>.dkr.ecr.us-east-1.amazonaws.com/product-service
   newName: 508972673973.dkr.ecr.us-east-1.amazonaws.com/product-service
-  newTag: f4e8a5b4679344bb02a96c8d06d17f88fac3774b
+  newTag: 2f576824930b51b2cfdf6e262b9eb9e0eaef98e7
 - name: <AWS_ACCOUNT_ID>.dkr.ecr.us-east-1.amazonaws.com/user-service
   newName: 508972673973.dkr.ecr.us-east-1.amazonaws.com/user-service
-  newTag: f4e8a5b4679344bb02a96c8d06d17f88fac3774b
+  newTag: 2f576824930b51b2cfdf6e262b9eb9e0eaef98e7

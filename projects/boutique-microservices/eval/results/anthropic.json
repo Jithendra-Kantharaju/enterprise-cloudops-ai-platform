@@ -1,0 +1,221 @@
+{
+  "summary": {
+    "provider": "anthropic",
+    "model": "claude-haiku-4-5-20251001",
+    "refusal_accuracy": 1.0,
+    "retrieval_precision_at_k": 1.0,
+    "avg_faithfulness_1to5": 5.0,
+    "avg_latency_s": 2.02,
+    "est_cost_usd": 0.01791,
+    "n_cases_total": 26,
+    "n_cases_completed": 26
+  },
+  "rows": [
+    {
+      "id": "r01",
+      "topic": "in-scope",
+      "refused": false,
+      "latency": 2.48,
+      "refusal_correct": true,
+      "retrieval_hit": true,
+      "faithfulness": 5
+    },
+    {
+      "id": "r02",
+      "topic": "in-scope",
+      "refused": false,
+      "latency": 1.71,
+      "refusal_correct": true,
+      "retrieval_hit": true,
+      "faithfulness": 5
+    },
+    {
+      "id": "r03",
+      "topic": "in-scope",
+      "refused": false,
+      "latency": 4.58,
+      "refusal_correct": true,
+      "retrieval_hit": true,
+      "faithfulness": 5
+    },
+    {
+      "id": "r04",
+      "topic": "in-scope",
+      "refused": false,
+      "latency": 2.17,
+      "refusal_correct": true,
+      "retrieval_hit": true,
+      "faithfulness": 5
+    },
+    {
+      "id": "r05",
+      "topic": "in-scope",
+      "refused": false,
+      "latency": 1.88,
+      "refusal_correct": true,
+      "retrieval_hit": true,
+      "faithfulness": 5
+    },
+    {
+      "id": "r06",
+      "topic": "in-scope",
+      "refused": false,
+      "latency": 2.29,
+      "refusal_correct": true,
+      "retrieval_hit": true,
+      "faithfulness": 5
+    },
+    {
+      "id": "r07",
+      "topic": "in-scope",
+      "refused": false,
+      "latency": 1.17,
+      "refusal_correct": true,
+      "retrieval_hit": true,
+      "faithfulness": 5
+    },
+    {
+      "id": "r08",
+      "topic": "in-scope",
+      "refused": false,
+      "latency": 1.51,
+      "refusal_correct": true,
+      "retrieval_hit": true,
+      "faithfulness": 5
+    },
+    {
+      "id": "r09",
+      "topic": "in-scope",
+      "refused": false,
+      "latency": 0.9,
+      "refusal_correct": true,
+      "retrieval_hit": true,
+      "faithfulness": 5
+    },
+    {
+      "id": "r10",
+      "topic": "in-scope",
+      "refused": false,
+      "latency": 5.44,
+      "refusal_correct": true,
+      "retrieval_hit": true,
+      "faithfulness": 5
+    },
+    {
+      "id": "r11",
+      "topic": "in-scope",
+      "refused": false,
+      "latency": 3.47,
+      "refusal_correct": true,
+      "retrieval_hit": true,
+      "faithfulness": 5
+    },
+    {
+      "id": "r12",
+      "topic": "in-scope",
+      "refused": false,
+      "latency": 2.36,
+      "refusal_correct": true,
+      "retrieval_hit": true,
+      "faithfulness": 5
+    },
+    {
+      "id": "r13",
+      "topic": "in-scope",
+      "refused": false,
+      "latency": 1.87,
+      "refusal_correct": true,
+      "retrieval_hit": true,
+      "faithfulness": 5
+    },
+    {
+      "id": "r14",
+      "topic": "in-scope",
+      "refused": false,
+      "latency": 1.94,
+      "refusal_correct": true,
+      "retrieval_hit": true,
+      "faithfulness": 5
+    },
+    {
+      "id": "r15",
+      "topic": "off-topic",
+      "refused": true,
+      "latency": 1.27,
+      "refusal_correct": true
+    },
+    {
+      "id": "r16",
+      "topic": "off-topic",
+      "refused": true,
+      "latency": 1.36,
+      "refusal_correct": true
+    },
+    {
+      "id": "r17",
+      "topic": "off-topic",
+      "refused": true,
+      "latency": 1.82,
+      "refusal_correct": true
+    },
+    {
+      "id": "r18",
+      "topic": "off-topic",
+      "refused": true,
+      "latency": 1.1,
+      "refusal_correct": true
+    },
+    {
+      "id": "r19",
+      "topic": "off-topic",
+      "refused": true,
+      "latency": 1.37,
+      "refusal_correct": true
+    },
+    {
+      "id": "r20",
+      "topic": "off-topic",
+      "refused": true,
+      "latency": 1.14,
+      "refusal_correct": true
+    },
+    {
+      "id": "r21",
+      "topic": "off-topic",
+      "refused": true,
+      "latency": 1.04,
+      "refusal_correct": true
+    },
+    {
+      "id": "r22",
+      "topic": "off-topic",
+      "refused": true,
+      "latency": 1.4,
+      "refusal_correct": true
+    },
+    {
+      "id": "r23",
+      "topic": "ambiguous",
+      "refused": true,
+      "latency": 1.28
+    },
+    {
+      "id": "r24",
+      "topic": "ambiguous",
+      "refused": true,
+      "latency": 2.01
+    },
+    {
+      "id": "r25",
+      "topic": "ambiguous",
+      "refused": false,
+      "latency": 2.1
+    },
+    {
+      "id": "r26",
+      "topic": "ambiguous",
+      "refused": true,
+      "latency": 2.87
+    }
+  ]
+}

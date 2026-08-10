@@ -1,111 +1,130 @@
-"""RAG eval: hits the live /ask endpoint and scores refusal, retrieval, faithfulness."""
-import os
-import json
-import time
-from pathlib import Path
+"""RAG eval with per-provider latency/cost. Output tagged by the provider under test.
 
+Resilience: each request gets one retry on a connection/timeout error before
+being recorded as a failed case, and results are written to disk even if the
+run is interrupted partway through, so one bad network moment doesn't cost
+you the whole run.
+"""
+import os, json, time
+from pathlib import Path
 import requests
 from openai import OpenAI
 
 ASK_URL = os.getenv("ASK_URL", "http://localhost:8000/ask")
-JUDGE_MODEL = os.getenv("JUDGE_MODEL", "gpt-4o")          # stronger judge than the app model
+JUDGE_MODEL = os.getenv("JUDGE_MODEL", "gpt-4o")   # constant judge across providers = fair
 REFUSAL = "i can only help with product details and pricing"
 HERE = Path(__file__).resolve().parent
 
+# Approximate USD per 1K tokens (illustrative; update to current pricing).
+PRICES = {
+    "gpt-4o-mini": (0.00015, 0.00060),
+    "claude-haiku-4-5-20251001": (0.00100, 0.00500),
+}
 client = OpenAI()
 
 
-def ask(question):
-    r = requests.post(ASK_URL, json={"message": question, "debug": True}, timeout=60)
-    r.raise_for_status()
-    return r.json()
+def ask(q, retries=1):
+    """POST to /ask. Retries once on a connection/timeout error before giving up."""
+    last_exc = None
+    for attempt in range(retries + 1):
+        try:
+            t0 = time.time()
+            r = requests.post(ASK_URL, json={"message": q, "debug": True}, timeout=60)
+            r.raise_for_status()
+            return r.json(), time.time() - t0
+        except (requests.exceptions.ConnectionError, requests.exceptions.Timeout,
+                requests.exceptions.HTTPError) as e:
+            last_exc = e
+            if attempt < retries:
+                time.sleep(1.5)  # brief backoff before the retry
+    raise last_exc
 
 
-def is_refusal(answer):
-    return REFUSAL in (answer or "").lower()
+def is_refusal(a): return REFUSAL in (a or "").lower()
 
 
-def judge_faithfulness(context, answer):
-    """LLM-as-judge: 1-5 how grounded the answer is in the context (5 = fully grounded)."""
-    prompt = (
-        "You are grading a shopping assistant. Rate 1 to 5 how fully the ANSWER is "
-        "grounded in the CONTEXT, inventing no facts (5 = fully grounded, 1 = fabricated). "
-        "Reply with ONLY the digit.\n\n"
-        f"CONTEXT:\n{context}\n\nANSWER:\n{answer}"
-    )
-    out = client.chat.completions.create(
-        model=JUDGE_MODEL, temperature=0,
-        messages=[{"role": "user", "content": prompt}],
-    ).choices[0].message.content.strip()
-    for ch in out:
-        if ch in "12345":
-            return int(ch)
-    return None
+def judge(context, answer):
+    p = ("Rate 1-5 how fully the ANSWER is grounded in the CONTEXT, inventing nothing "
+         "(5=fully grounded). Reply ONLY the digit.\n\n"
+         f"CONTEXT:\n{context}\n\nANSWER:\n{answer}")
+    out = client.chat.completions.create(model=JUDGE_MODEL, temperature=0,
+                                         messages=[{"role": "user", "content": p}]
+                                         ).choices[0].message.content.strip()
+    return next((int(c) for c in out if c in "12345"), None)
+
+
+def cost(model, pt, ct):
+    pin, pout = PRICES.get(model, (0, 0))
+    return (pt / 1000) * pin + (ct / 1000) * pout
+
+
+def write_results(provider, rows, rf_hit, rf_tot, rt_hit, rt_tot, faith, latencies, total_cost, model, n_cases):
+    summary = {
+        "provider": provider, "model": model,
+        "refusal_accuracy": round(rf_hit / rf_tot, 3) if rf_tot else None,
+        "retrieval_precision_at_k": round(rt_hit / rt_tot, 3) if rt_tot else None,
+        "avg_faithfulness_1to5": round(sum(faith) / len(faith), 2) if faith else None,
+        "avg_latency_s": round(sum(latencies) / len(latencies), 2) if latencies else None,
+        "est_cost_usd": round(total_cost, 5),
+        "n_cases_total": n_cases, "n_cases_completed": len(rows),
+    }
+    (HERE / "results").mkdir(exist_ok=True)
+    out_path = HERE / "results" / f"{provider}.json"
+    out_path.write_text(json.dumps({"summary": summary, "rows": rows}, indent=2))
+    return summary, out_path
 
 
 def main():
     cases = json.loads((HERE / "rag_test_cases.json").read_text())
-    rows, refusal_hits, refusal_total = [], 0, 0
-    retr_hits, retr_total, faith_scores = 0, 0, []
+    rows, rf_hit, rf_tot, rt_hit, rt_tot = [], 0, 0, 0, 0
+    faith, latencies, total_cost, provider, model = [], [], 0.0, "openai", "?"
+    failed = []
 
     for c in cases:
-        resp = ask(c["question"])
+        try:
+            resp, latency = ask(c["question"])
+        except Exception as e:
+            print(f"  [SKIP] {c['id']} failed after retry: {e}")
+            failed.append({"id": c["id"], "error": str(e)})
+            continue
+
+        latencies.append(latency)
         answer = resp.get("answer", "")
         sources = resp.get("sources") or []
-        src_ids = [s.get("id") for s in sources]
-        refused = is_refusal(answer)
-        row = {"id": c["id"], "topic": c["expected_topic"], "refused": refused,
-               "src_ids": src_ids, "answer": answer[:120]}
+        meta = resp.get("meta") or {}
+        provider = meta.get("provider", provider); model = meta.get("model", model)
+        total_cost += cost(model, meta.get("prompt_tokens", 0), meta.get("completion_tokens", 0))
+        refused = is_refusal(answer); src_ids = [s.get("id") for s in sources]
+        row = {"id": c["id"], "topic": c["expected_topic"], "refused": refused, "latency": round(latency, 2)}
 
-        # refusal accuracy (skip ambiguous)
         if c["expected_topic"] in ("in-scope", "off-topic"):
-            refusal_total += 1
-            correct = (c["expected_topic"] == "off-topic") == refused
-            row["refusal_correct"] = correct
-            refusal_hits += int(correct)
-
-        # retrieval precision (in-scope with an expected doc)
+            rf_tot += 1
+            ok = (c["expected_topic"] == "off-topic") == refused
+            row["refusal_correct"] = ok; rf_hit += int(ok)
         if c.get("expected_source_doc"):
-            retr_total += 1
+            rt_tot += 1
             hit = c["expected_source_doc"] in src_ids
-            row["retrieval_hit"] = hit
-            retr_hits += int(hit)
-
-        # faithfulness (in-scope, answered not refused)
+            row["retrieval_hit"] = hit; rt_hit += int(hit)
         if c["expected_topic"] == "in-scope" and not refused:
             ctx = "\n\n".join(s.get("text", "") for s in sources)
-            score = judge_faithfulness(ctx, answer)
-            row["faithfulness"] = score
-            if score is not None:
-                faith_scores.append(score)
+            sc = judge(ctx, answer); row["faithfulness"] = sc
+            if sc is not None: faith.append(sc)
+        rows.append(row); time.sleep(0.3)
 
-        rows.append(row)
-        time.sleep(0.3)
+    summary, out_path = write_results(provider, rows, rf_hit, rf_tot, rt_hit, rt_tot,
+                                       faith, latencies, total_cost, model, len(cases))
 
-    summary = {
-        "refusal_accuracy": round(refusal_hits / refusal_total, 3) if refusal_total else None,
-        "retrieval_precision_at_k": round(retr_hits / retr_total, 3) if retr_total else None,
-        "avg_faithfulness_1to5": round(sum(faith_scores) / len(faith_scores), 2) if faith_scores else None,
-        "n_cases": len(cases),
-    }
-    out = {"summary": summary, "rows": rows}
-    (HERE / "results" / "v1.json").write_text(json.dumps(out, indent=2))
-
-    print("\n===== RAG EVAL (v1) =====")
-    print(f"{'metric':<26}{'score'}")
-    print(f"{'refusal accuracy':<26}{summary['refusal_accuracy']}")
-    print(f"{'retrieval precision@k':<26}{summary['retrieval_precision_at_k']}")
-    print(f"{'avg faithfulness (1-5)':<26}{summary['avg_faithfulness_1to5']}")
-    print(f"{'cases':<26}{summary['n_cases']}")
-    print("\nPer-case:")
-    for r in rows:
-        flags = []
-        if "refusal_correct" in r: flags.append("refuse:" + ("ok" if r["refusal_correct"] else "X"))
-        if "retrieval_hit" in r:  flags.append("retr:" + ("ok" if r["retrieval_hit"] else "X"))
-        if "faithfulness" in r:    flags.append(f"faith:{r['faithfulness']}")
-        print(f"  {r['id']} [{r['topic']:<9}] {' '.join(flags)}")
-    print("\nWrote eval/results/v1.json")
-    print("NOTE: hand spot-check ~8 of the faithfulness scores to confirm the judge isn't rubber-stamping.")
+    print(f"\n===== RAG EVAL — provider={provider} model={model} =====")
+    for k in ["refusal_accuracy", "retrieval_precision_at_k", "avg_faithfulness_1to5",
+              "avg_latency_s", "est_cost_usd", "n_cases_total", "n_cases_completed"]:
+        print(f"{k:<26}{summary[k]}")
+    if failed:
+        print(f"\n{len(failed)} case(s) failed and were skipped:")
+        for f in failed:
+            print(f"  - {f['id']}: {f['error']}")
+        print("Re-run the script; only the missing cases matter for a complete picture.")
+    print(f"\nWrote {out_path}")
+    print("NOTE: hand spot-check ~8 faithfulness scores; judge model is held constant across providers.")
 
 
 if __name__ == "__main__":

@@ -37,3 +37,6 @@ Thumbs.db
 Docs/AIOps.mp4
 .env
 projects/boutique-microservices/ai-assistant/.env
+
+projects/boutique-microservices/eval/.venv/
+projects/boutique-microservices/eval/__pycache__/

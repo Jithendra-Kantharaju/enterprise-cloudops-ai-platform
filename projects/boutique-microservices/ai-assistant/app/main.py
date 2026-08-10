@@ -9,6 +9,7 @@ completely independent of the Node.js e-commerce backend.
 import os
 import time
 import logging
+from typing import Optional, List, Dict, Any
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -58,10 +59,12 @@ REFUSAL_TEXT = "I'm sorry, I can only help with product details and pricing for 
 
 class AskRequest(BaseModel):
     message: str
+    debug: bool = False          # when true, response includes retrieved sources
 
 
 class AskResponse(BaseModel):
     answer: str
+    sources: Optional[List[Dict[str, Any]]] = None
 
 
 @app.on_event("startup")
@@ -83,7 +86,7 @@ def metrics():
     return Response(generate_latest(), media_type=CONTENT_TYPE_LATEST)
 
 
-@app.post("/ask", response_model=AskResponse)
+@app.post("/ask", response_model=AskResponse, response_model_exclude_none=True)
 def ask(req: AskRequest):
     REQUESTS.inc()
     start = time.time()
@@ -92,9 +95,9 @@ def ask(req: AskRequest):
     if not question:
         return AskResponse(answer="Please type a question about our products or pricing.")
 
-    # 1) Retrieve relevant product/pricing context from the vector DB.
-    context_docs = retrieve(question, k=TOP_K)
-    context = "\n\n".join(context_docs) if context_docs else "(no relevant context found)"
+    # 1) Retrieve relevant context (list of dicts with id/text/metadata/distance).
+    hits = retrieve(question, k=TOP_K)
+    context = "\n\n".join(h["text"] for h in hits) if hits else "(no relevant context found)"
 
     # 2) Ask the LLM, grounded in that context, with guardrails in the system prompt.
     try:
@@ -107,13 +110,20 @@ def ask(req: AskRequest):
             ],
         )
         answer = completion.choices[0].message.content.strip()
-    except Exception as exc:
+    except Exception:
         log.exception("OpenAI call failed")
         LATENCY.observe(time.time() - start)
         return AskResponse(answer="Sorry, the assistant is temporarily unavailable. Please try again.")
 
     if REFUSAL_TEXT.lower() in answer.lower():
         REFUSALS.inc()
-
     LATENCY.observe(time.time() - start)
-    return AskResponse(answer=answer)
+
+    sources = None
+    if req.debug:
+        sources = [
+            {"id": h["id"], "name": h["metadata"].get("name"),
+             "distance": h["distance"], "text": h["text"]}
+            for h in hits
+        ]
+    return AskResponse(answer=answer, sources=sources)

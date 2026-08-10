@@ -1,0 +1,18 @@
+[
+  {"id": "k01", "alert": "orders deployment shows 0/0 replicas", "tool_output": "deployment orders: desired=0 available=0", "expected_tool": "fetch_health", "expected_category": "scaled_to_zero"},
+  {"id": "k02", "alert": "users report 503 errors from the gateway", "tool_output": "logs: 503 upstream connect error, 40% of requests", "expected_tool": "fetch_logs", "expected_category": "high_error_rate"},
+  {"id": "k03", "alert": "auth pod in CrashLoopBackOff", "tool_output": "logs: process exited code 1, restarting; 6 restarts", "expected_tool": "fetch_logs", "expected_category": "crash_loop"},
+  {"id": "k04", "alert": "product-service pod stuck ImagePullBackOff", "tool_output": "health: image tag not found in ECR", "expected_tool": "fetch_health", "expected_category": "image_pull_error"},
+  {"id": "k05", "alert": "API p99 latency spiked to 4s", "tool_output": "metrics: p99=4100ms p50=180ms", "expected_tool": "fetch_metrics", "expected_category": "high_latency"},
+  {"id": "k06", "alert": "node CPU pegged at 95 percent", "tool_output": "metrics: node cpu=95% mem=70%", "expected_tool": "fetch_metrics", "expected_category": "resource_exhaustion"},
+  {"id": "k07", "alert": "auth logs show database auth_db does not exist", "tool_output": "logs: FATAL database auth_db does not exist 3D000", "expected_tool": "fetch_logs", "expected_category": "db_connection_error"},
+  {"id": "k08", "alert": "is the cluster healthy right now?", "tool_output": "health: all deployments available, nodes Ready", "expected_tool": "fetch_health", "expected_category": "healthy"},
+  {"id": "k09", "alert": "a pod was OOMKilled", "tool_output": "health: last state terminated reason OOMKilled", "expected_tool": "fetch_health", "expected_category": "oom_killed"},
+  {"id": "k10", "alert": "a worker node shows NotReady", "tool_output": "health: node ip-10-1-1-9 status NotReady", "expected_tool": "fetch_health", "expected_category": "node_not_ready"},
+  {"id": "k11", "alert": "error rate 30 percent on product-service", "tool_output": "metrics: 5xx rate=0.30", "expected_tool": "fetch_metrics", "expected_category": "high_error_rate"},
+  {"id": "k12", "alert": "orders has no running pods after a scale action", "tool_output": "health: orders replicas 0/0", "expected_tool": "fetch_health", "expected_category": "scaled_to_zero"},
+  {"id": "k13", "alert": "logs full of OutOfMemory stack traces", "tool_output": "logs: java.lang.OutOfMemoryError repeated", "expected_tool": "fetch_logs", "expected_category": "oom_killed"},
+  {"id": "k14", "alert": "memory climbing and pods keep restarting", "tool_output": "metrics: mem=92% and rising, restarts=4", "expected_tool": "fetch_metrics", "expected_category": "resource_exhaustion"},
+  {"id": "k15", "alert": "gateway logs: connection refused to auth service", "tool_output": "logs: ECONNREFUSED auth:3002 repeated", "expected_tool": "fetch_logs", "expected_category": "high_error_rate"},
+  {"id": "k16", "alert": "routine check, dashboards look green", "tool_output": "health: all green", "expected_tool": "fetch_health", "expected_category": "healthy"}
+]

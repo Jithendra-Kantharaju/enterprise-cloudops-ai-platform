@@ -1,0 +1,371 @@
+{
+  "summary": {
+    "refusal_accuracy": 0.955,
+    "retrieval_precision_at_k": 1.0,
+    "avg_faithfulness_1to5": 5.0,
+    "n_cases": 26
+  },
+  "rows": [
+    {
+      "id": "r01",
+      "topic": "in-scope",
+      "refused": false,
+      "src_ids": [
+        "p1",
+        "p3",
+        "p4",
+        "p2"
+      ],
+      "answer": "The price of the Silk Evening Gown is $1899.00 (was $2299.00).",
+      "refusal_correct": true,
+      "retrieval_hit": true,
+      "faithfulness": 5
+    },
+    {
+      "id": "r02",
+      "topic": "in-scope",
+      "refused": false,
+      "src_ids": [
+        "p2",
+        "p4",
+        "p3",
+        "p1"
+      ],
+      "answer": "The Leather Handbag is priced at $599.00 (was $799.00).",
+      "refusal_correct": true,
+      "retrieval_hit": true,
+      "faithfulness": 5
+    },
+    {
+      "id": "r03",
+      "topic": "in-scope",
+      "refused": false,
+      "src_ids": [
+        "p3",
+        "p1",
+        "p4",
+        "p2"
+      ],
+      "answer": "The Diamond Necklace costs $2999.00 (was $3999.00).",
+      "refusal_correct": true,
+      "retrieval_hit": true,
+      "faithfulness": 5
+    },
+    {
+      "id": "r04",
+      "topic": "in-scope",
+      "refused": false,
+      "src_ids": [
+        "p4",
+        "p1",
+        "p2",
+        "p3"
+      ],
+      "answer": "The price of the Cashmere Coat is $899.00 (was $1200.00).",
+      "refusal_correct": true,
+      "retrieval_hit": true,
+      "faithfulness": 5
+    },
+    {
+      "id": "r05",
+      "topic": "in-scope",
+      "refused": false,
+      "src_ids": [
+        "p5",
+        "p2",
+        "p4",
+        "p3"
+      ],
+      "answer": "The Classic Aviator Sunglasses are priced at $249.00 (was $320.00). However, they are currently out of stock.",
+      "refusal_correct": true,
+      "retrieval_hit": true,
+      "faithfulness": 5
+    },
+    {
+      "id": "r06",
+      "topic": "in-scope",
+      "refused": false,
+      "src_ids": [
+        "p1",
+        "p3",
+        "p4",
+        "p2"
+      ],
+      "answer": "Yes, the Silk Evening Gown is on sale for $1899.00, down from $2299.00.",
+      "refusal_correct": true,
+      "retrieval_hit": true,
+      "faithfulness": 5
+    },
+    {
+      "id": "r07",
+      "topic": "in-scope",
+      "refused": false,
+      "src_ids": [
+        "p3",
+        "p1",
+        "p4",
+        "p2"
+      ],
+      "answer": "The rating of the Diamond Necklace is 4.9/5 based on 52 reviews.",
+      "refusal_correct": true,
+      "retrieval_hit": true,
+      "faithfulness": 5
+    },
+    {
+      "id": "r08",
+      "topic": "in-scope",
+      "refused": false,
+      "src_ids": [
+        "p2",
+        "policy-restock",
+        "p5",
+        "p4"
+      ],
+      "answer": "There are 25 Leather Handbags in stock.",
+      "refusal_correct": true,
+      "retrieval_hit": true,
+      "faithfulness": 5
+    },
+    {
+      "id": "r09",
+      "topic": "in-scope",
+      "refused": false,
+      "src_ids": [
+        "p4",
+        "p1",
+        "p2",
+        "p3"
+      ],
+      "answer": "The Cashmere Coat is in the Outerwear category.",
+      "refusal_correct": true,
+      "retrieval_hit": true,
+      "faithfulness": 5
+    },
+    {
+      "id": "r10",
+      "topic": "in-scope",
+      "refused": false,
+      "src_ids": [
+        "p5",
+        "policy-restock",
+        "p2",
+        "policy-returns"
+      ],
+      "answer": "The Classic Aviator Sunglasses are typically restocked within 2 to 3 weeks.",
+      "refusal_correct": true,
+      "retrieval_hit": true,
+      "faithfulness": 5
+    },
+    {
+      "id": "r11",
+      "topic": "in-scope",
+      "refused": true,
+      "src_ids": [
+        "policy-returns",
+        "policy-restock",
+        "policy-shipping",
+        "p5"
+      ],
+      "answer": "I'm sorry, I can only help with product details and pricing for our store.",
+      "refusal_correct": false,
+      "retrieval_hit": true
+    },
+    {
+      "id": "r12",
+      "topic": "in-scope",
+      "refused": false,
+      "src_ids": [
+        "policy-shipping",
+        "policy-returns",
+        "p2",
+        "p4"
+      ],
+      "answer": "Yes, standard shipping is complimentary on all orders over $500.",
+      "refusal_correct": true,
+      "retrieval_hit": true,
+      "faithfulness": 5
+    },
+    {
+      "id": "r13",
+      "topic": "in-scope",
+      "refused": false,
+      "src_ids": [
+        "policy-shipping",
+        "policy-returns",
+        "p2",
+        "p3"
+      ],
+      "answer": "The shipping fee on a $300 order is a flat $15.",
+      "refusal_correct": true,
+      "retrieval_hit": true,
+      "faithfulness": 5
+    },
+    {
+      "id": "r14",
+      "topic": "in-scope",
+      "refused": false,
+      "src_ids": [
+        "policy-restock",
+        "policy-returns",
+        "p5",
+        "policy-shipping"
+      ],
+      "answer": "Out-of-stock items are typically restocked within 2 to 3 weeks.",
+      "refusal_correct": true,
+      "retrieval_hit": true,
+      "faithfulness": 5
+    },
+    {
+      "id": "r15",
+      "topic": "off-topic",
+      "refused": true,
+      "src_ids": [
+        "p4",
+        "p3",
+        "p2",
+        "policy-shipping"
+      ],
+      "answer": "I'm sorry, I can only help with product details and pricing for our store.",
+      "refusal_correct": true
+    },
+    {
+      "id": "r16",
+      "topic": "off-topic",
+      "refused": true,
+      "src_ids": [
+        "p4",
+        "p5",
+        "p2",
+        "p3"
+      ],
+      "answer": "I'm sorry, I can only help with product details and pricing for our store.",
+      "refusal_correct": true
+    },
+    {
+      "id": "r17",
+      "topic": "off-topic",
+      "refused": true,
+      "src_ids": [
+        "p3",
+        "p1",
+        "p4",
+        "policy-shipping"
+      ],
+      "answer": "I'm sorry, I can only help with product details and pricing for our store.",
+      "refusal_correct": true
+    },
+    {
+      "id": "r18",
+      "topic": "off-topic",
+      "refused": true,
+      "src_ids": [
+        "p2",
+        "p1",
+        "p3",
+        "p4"
+      ],
+      "answer": "I'm sorry, I can only help with product details and pricing for our store.",
+      "refusal_correct": true
+    },
+    {
+      "id": "r19",
+      "topic": "off-topic",
+      "refused": true,
+      "src_ids": [
+        "policy-restock",
+        "p5",
+        "policy-shipping",
+        "policy-returns"
+      ],
+      "answer": "I'm sorry, I can only help with product details and pricing for our store.",
+      "refusal_correct": true
+    },
+    {
+      "id": "r20",
+      "topic": "off-topic",
+      "refused": true,
+      "src_ids": [
+        "p3",
+        "p1",
+        "p4",
+        "p5"
+      ],
+      "answer": "I'm sorry, I can only help with product details and pricing for our store.",
+      "refusal_correct": true
+    },
+    {
+      "id": "r21",
+      "topic": "off-topic",
+      "refused": true,
+      "src_ids": [
+        "p1",
+        "p3",
+        "p2",
+        "p4"
+      ],
+      "answer": "I'm sorry, I can only help with product details and pricing for our store.",
+      "refusal_correct": true
+    },
+    {
+      "id": "r22",
+      "topic": "off-topic",
+      "refused": true,
+      "src_ids": [
+        "policy-restock",
+        "policy-shipping",
+        "policy-returns",
+        "p3"
+      ],
+      "answer": "I'm sorry, I can only help with product details and pricing for our store.",
+      "refusal_correct": true
+    },
+    {
+      "id": "r23",
+      "topic": "ambiguous",
+      "refused": true,
+      "src_ids": [
+        "p2",
+        "policy-shipping",
+        "p3",
+        "policy-restock"
+      ],
+      "answer": "I'm sorry, I can only help with product details and pricing for our store."
+    },
+    {
+      "id": "r24",
+      "topic": "ambiguous",
+      "refused": true,
+      "src_ids": [
+        "policy-shipping",
+        "p3",
+        "p2",
+        "policy-restock"
+      ],
+      "answer": "I'm sorry, I can only help with product details and pricing for our store."
+    },
+    {
+      "id": "r25",
+      "topic": "ambiguous",
+      "refused": true,
+      "src_ids": [
+        "p1",
+        "p4",
+        "p3",
+        "p2"
+      ],
+      "answer": "I'm sorry, I can only help with product details and pricing for our store."
+    },
+    {
+      "id": "r26",
+      "topic": "ambiguous",
+      "refused": true,
+      "src_ids": [
+        "policy-shipping",
+        "policy-restock",
+        "policy-returns",
+        "p4"
+      ],
+      "answer": "I'm sorry, I can only help with product details and pricing for our store."
+    }
+  ]
+}

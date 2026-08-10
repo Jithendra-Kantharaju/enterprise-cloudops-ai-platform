@@ -69,11 +69,26 @@ def ensure_index() -> None:
 
 
 def retrieve(query: str, k: int = 4):
-    """Return the top-k most relevant document chunks for a query."""
+    """Return the top-k chunks as dicts: {id, text, metadata, distance}."""
     collection = _chroma.get_or_create_collection(name=COLLECTION)
     if collection.count() == 0:
         ensure_index()
     q_emb = _embed([query])[0]
-    res = collection.query(query_embeddings=[q_emb], n_results=k)
-    docs = res.get("documents", [[]])
-    return docs[0] if docs else []
+    res = collection.query(
+        query_embeddings=[q_emb],
+        n_results=k,
+        include=["documents", "metadatas", "distances"],
+    )
+    ids = (res.get("ids") or [[]])[0]
+    docs = (res.get("documents") or [[]])[0]
+    metas = (res.get("metadatas") or [[]])[0]
+    dists = (res.get("distances") or [[]])[0]
+    out = []
+    for i in range(len(docs)):
+        out.append({
+            "id": ids[i] if i < len(ids) else None,
+            "text": docs[i],
+            "metadata": metas[i] if i < len(metas) else {},
+            "distance": dists[i] if i < len(dists) else None,
+        })
+    return out

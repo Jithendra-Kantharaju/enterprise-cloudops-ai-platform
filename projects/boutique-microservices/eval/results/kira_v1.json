@@ -1,0 +1,121 @@
+{
+  "summary": {
+    "tool_selection_accuracy": 0.938,
+    "diagnosis_accuracy": 0.938,
+    "n_cases": 16
+  },
+  "rows": [
+    {
+      "id": "k01",
+      "tool": "fetch_health",
+      "tool_ok": true,
+      "category": "scaled_to_zero",
+      "diag_ok": true
+    },
+    {
+      "id": "k02",
+      "tool": "fetch_logs",
+      "tool_ok": true,
+      "category": "high_error_rate",
+      "diag_ok": true
+    },
+    {
+      "id": "k03",
+      "tool": "fetch_health",
+      "tool_ok": false,
+      "category": "crash_loop",
+      "diag_ok": true
+    },
+    {
+      "id": "k04",
+      "tool": "fetch_health",
+      "tool_ok": true,
+      "category": "image_pull_error",
+      "diag_ok": true
+    },
+    {
+      "id": "k05",
+      "tool": "fetch_metrics",
+      "tool_ok": true,
+      "category": "high_latency",
+      "diag_ok": true
+    },
+    {
+      "id": "k06",
+      "tool": "fetch_metrics",
+      "tool_ok": true,
+      "category": "resource_exhaustion",
+      "diag_ok": true
+    },
+    {
+      "id": "k07",
+      "tool": "fetch_logs",
+      "tool_ok": true,
+      "category": "db_connection_error",
+      "diag_ok": true
+    },
+    {
+      "id": "k08",
+      "tool": "fetch_health",
+      "tool_ok": true,
+      "category": "healthy",
+      "diag_ok": true
+    },
+    {
+      "id": "k09",
+      "tool": "fetch_health",
+      "tool_ok": true,
+      "category": "oom_killed",
+      "diag_ok": true
+    },
+    {
+      "id": "k10",
+      "tool": "fetch_health",
+      "tool_ok": true,
+      "category": "node_not_ready",
+      "diag_ok": true
+    },
+    {
+      "id": "k11",
+      "tool": "fetch_metrics",
+      "tool_ok": true,
+      "category": "high_error_rate",
+      "diag_ok": true
+    },
+    {
+      "id": "k12",
+      "tool": "fetch_health",
+      "tool_ok": true,
+      "category": "scaled_to_zero",
+      "diag_ok": true
+    },
+    {
+      "id": "k13",
+      "tool": "fetch_logs",
+      "tool_ok": true,
+      "category": "oom_killed",
+      "diag_ok": true
+    },
+    {
+      "id": "k14",
+      "tool": "fetch_metrics",
+      "tool_ok": true,
+      "category": "resource_exhaustion",
+      "diag_ok": true
+    },
+    {
+      "id": "k15",
+      "tool": "fetch_logs",
+      "tool_ok": true,
+      "category": "db_connection_error",
+      "diag_ok": false
+    },
+    {
+      "id": "k16",
+      "tool": "fetch_health",
+      "tool_ok": true,
+      "category": "healthy",
+      "diag_ok": true
+    }
+  ]
+}

@@ -1,3 +1,5 @@
 streamlit
 boto3
 python-dotenv
+langgraph
+openai

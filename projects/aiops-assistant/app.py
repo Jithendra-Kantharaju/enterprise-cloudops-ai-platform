@@ -1,11 +1,16 @@
 """
 AIOps Assistant — Streamlit Chat UI
-Connects to AWS Bedrock Agent for root cause analysis.
+
+Two reasoning engines, switchable in the sidebar:
+  1. Bedrock agent   — calls the real AWS Bedrock Agent (needs live AWS creds/config).
+  2. LangGraph local — runs Kira's reasoning as a local state graph against mocked
+                        tool outputs (graph/kira_graph.py). Zero AWS required.
+                        Added in Step 5 of the FDE leveling-up plan.
 
 Setup:
     1. pip install -r requirements.txt
     2. cp .env.example .env
-    3. Fill in your values in .env
+    3. Fill in your values in .env (only required for the Bedrock engine)
     4. streamlit run app.py
 """
 
@@ -14,26 +19,35 @@ import boto3
 import uuid
 import json
 import os
+from datetime import datetime, timezone
 from dotenv import load_dotenv
+from notify_slack import notify_slack
+
+# --- STEP 5 ADDITION (a): local LangGraph reasoning engine, no AWS needed ---
+from graph.kira_graph import run_kira_graph
 
 # Load environment variables from .env file
 load_dotenv()
 
-# --- Config from environment ---
+# --- Config from environment (only used by the Bedrock engine) ---
 AWS_ACCESS_KEY_ID = os.getenv("AWS_ACCESS_KEY_ID")
 AWS_SECRET_ACCESS_KEY = os.getenv("AWS_SECRET_ACCESS_KEY")
 AWS_SESSION_TOKEN = os.getenv("AWS_SESSION_TOKEN")
 AWS_REGION = os.getenv("AWS_REGION", "eu-north-1")
 AGENT_ID = os.getenv("BEDROCK_AGENT_ID")
 AGENT_ALIAS_ID = os.getenv("BEDROCK_AGENT_ALIAS_ID")
+SLACK_DRY_RUN = os.getenv("SLACK_WEBHOOK_URL", "") == ""
 
 
 # --- Page Config ---
+# FIX: sidebar now starts EXPANDED. It used to start "collapsed" while the CSS
+# below also hid the header that contains the reopen arrow, a dead end where
+# the sidebar (and the engine picker inside it) was completely unreachable.
 st.set_page_config(
     page_title="Kira — AIOps Assistant",
     page_icon="🔍",
     layout="wide",
-    initial_sidebar_state="collapsed",
+    initial_sidebar_state="expanded",
 )
 
 # --- Custom CSS ---
@@ -149,7 +163,12 @@ st.markdown("""
 
     #MainMenu { visibility: hidden; }
     footer { visibility: hidden; }
+    /* FIX: header itself stays hidden (it's just Streamlit's default top bar),
+       but the sidebar collapse/expand arrow lives inside that header element
+       and must stay clickable, or the sidebar becomes permanently unreachable
+       once collapsed. This rule re-shows just that one control. */
     header { visibility: hidden; }
+    [data-testid="collapsedControl"] { visibility: visible !important; display: block !important; }
 [data-testid="stChatMessage"], [data-testid="stChatMessage"] p, [data-testid="stChatMessage"] li { color: #ffffff !important; }
 </style>
 """, unsafe_allow_html=True)
@@ -157,7 +176,13 @@ st.markdown("""
 
 # --- Validate Config ---
 # Access keys optional: boto3 uses ~/.aws/credentials, SSO, env, or IAM role if unset.
+# This flag only matters for the Bedrock engine; LangGraph mode ignores it entirely.
 config_ok = bool(AGENT_ID and AGENT_ALIAS_ID)
+
+# --- STEP 5 ADDITION (b): reasoning engine selector, read early so the config
+# gate below (c) knows whether Bedrock config is actually required this run. ---
+engine = st.sidebar.radio("Reasoning engine", ["Bedrock agent", "LangGraph (local, mock)"], index=0)
+USE_LANGGRAPH = engine.startswith("LangGraph")
 
 
 # --- Initialize Session State ---
@@ -165,7 +190,16 @@ if "messages" not in st.session_state:
     st.session_state.messages = []
 if "session_id" not in st.session_state:
     st.session_state.session_id = str(uuid.uuid4())
+if "last_diagnosis" not in st.session_state:
+    st.session_state.last_diagnosis = None
 
+
+# =====================================================================
+# BEDROCK ENGINE (original, live-AWS path)
+# Kept fully intact and untouched below so it's ready to use again the
+# moment a real EKS/Bedrock session is spun up. Not called at all when
+# the sidebar is set to "LangGraph (local, mock)".
+# =====================================================================
 
 # --- Bedrock Agent Client ---
 @st.cache_resource
@@ -180,7 +214,10 @@ def get_bedrock_client():
 
 
 def invoke_agent(prompt: str) -> str:
-    """Send a message to the Bedrock Agent and get the response."""
+    """Send a message to the live Bedrock Agent and get the response.
+    Only called when USE_LANGGRAPH is False. Requires BEDROCK_AGENT_ID and
+    BEDROCK_AGENT_ALIAS_ID (see .env.example) plus valid AWS credentials.
+    """
     client = get_bedrock_client()
 
     try:
@@ -203,6 +240,10 @@ def invoke_agent(prompt: str) -> str:
     except Exception as e:
         return f"⚠️ Error: {str(e)}"
 
+# =====================================================================
+# END BEDROCK ENGINE
+# =====================================================================
+
 
 # --- Header ---
 st.markdown("""
@@ -214,7 +255,9 @@ st.markdown("""
 
 
 # --- Config Error ---
-if not config_ok:
+# STEP 5 ADDITION (c): only block the app on missing Bedrock config when the
+# Bedrock engine is actually selected. LangGraph mode never needs AWS.
+if not config_ok and not USE_LANGGRAPH:
     st.markdown(f"""
     <div class="status-bar">
         <div class="status-dot-error"></div>
@@ -231,6 +274,7 @@ BEDROCK_AGENT_ALIAS_ID=TSTALIASID
 # AWS_ACCESS_KEY_ID=...
 # AWS_SECRET_ACCESS_KEY=...
 # AWS_SESSION_TOKEN=...  # only for temporary credentials""", language="bash")
+    st.info("Tip: pick \"LangGraph (local, mock)\" in the sidebar to try Kira without any AWS setup.")
     st.stop()
 
 
@@ -242,9 +286,9 @@ st.markdown(f"""
     <span style="color: #2a3040;">|</span>
     <span style="color: #22d3ee;">Session: {st.session_state.session_id[:8]}</span>
     <span style="color: #2a3040;">|</span>
-    <span style="color: #22d3ee;">Region: {AWS_REGION}</span>
+    <span style="color: #22d3ee;">Engine: {engine}</span>
     <span style="color: #2a3040;">|</span>
-    <span style="color: #22d3ee;">Agent: {AGENT_ID}</span>
+    <span style="color: #22d3ee;">Region: {AWS_REGION}</span>
 </div>
 """, unsafe_allow_html=True)
 
@@ -288,13 +332,66 @@ if prompt:
     with st.chat_message("user"):
         st.markdown(prompt)
 
-    # Get agent response
+    # --- STEP 5 ADDITION (d): branch between the two reasoning engines ---
     with st.chat_message("assistant"):
         with st.spinner("🔍 Kira is investigating..."):
-            response = invoke_agent(prompt)
-        st.markdown(response)
+            if USE_LANGGRAPH:
+                # Local path: LangGraph state machine over mocked tool outputs.
+                # See graph/kira_graph.py for the classify -> select_tool ->
+                # call_tool -> correlate -> generate_diagnosis flow.
+                result = run_kira_graph(prompt)
+                diag = result["diagnosis"]
+                response = (f"**Root cause:** {diag.get('root_cause','')}\n\n"
+                            f"**Service:** {diag.get('service','?')}  |  "
+                            f"**Category:** {diag.get('category','?')}  |  "
+                            f"**Confidence:** {diag.get('confidence','?')}")
+                st.markdown(response)
+                with st.expander("🧠 Show reasoning steps"):
+                    for i, s in enumerate(result["trace"], 1):
+                        st.markdown(f"**{i}. `{s['node']}`** — {s['detail']}")
+            else:
+                # Live path: original Bedrock Agent call, unchanged from before.
+                response = invoke_agent(prompt)
+                st.markdown(response)
 
     st.session_state.messages.append({"role": "assistant", "content": response})
+
+    # Store this as the latest diagnosis so the Notify button (below) can send it.
+    if USE_LANGGRAPH:
+        # LangGraph gives us real structured fields, so use them directly
+        # instead of the generic prompt/response fallback below.
+        diag = result["diagnosis"]
+        st.session_state.last_diagnosis = {
+            "service": diag.get("service", prompt[:60]),
+            "root_cause": diag.get("root_cause", response),
+            "confidence": diag.get("confidence"),
+            "timestamp": datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC"),
+        }
+    else:
+        # Bedrock's agent response is free text, not a structured object, so we
+        # capture what we actually have: the triggering question and the full answer.
+        st.session_state.last_diagnosis = {
+            "service": prompt[:60],
+            "root_cause": response,
+            "confidence": None,
+            "timestamp": datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC"),
+        }
+
+
+# --- Notify Team (persists across reruns as long as a diagnosis exists) ---
+if st.session_state.last_diagnosis:
+    st.markdown("<div style='height: 0.5rem'></div>", unsafe_allow_html=True)
+    notify_col, status_col = st.columns([1, 3])
+    with notify_col:
+        if st.button("📣 Notify team"):
+            try:
+                notify_slack(st.session_state.last_diagnosis, dry_run=SLACK_DRY_RUN)
+                if SLACK_DRY_RUN:
+                    st.info("SLACK_WEBHOOK_URL not set — printed the payload to the terminal instead of posting.")
+                else:
+                    st.success("Sent to Slack.")
+            except Exception as e:
+                st.error(f"Slack notify failed: {e}")
 
 
 # --- Sidebar ---
@@ -327,4 +424,5 @@ with st.sidebar:
     if st.button("🔄 New Session"):
         st.session_state.messages = []
         st.session_state.session_id = str(uuid.uuid4())
+        st.session_state.last_diagnosis = None
         st.rerun()

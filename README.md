@@ -4,14 +4,17 @@ An end-to-end **DevOps + AI** platform on **AWS EKS**: a seven-service e-commerc
 microservices application plus a **customer-facing AI shopping assistant**, provisioned
 with **Terraform**, delivered through a **GitHub Actions** CI pipeline and **ArgoCD**
 GitOps, and observed with **Prometheus + Grafana**. The AI assistant is a
-Retrieval-Augmented-Generation (RAG) service built with **FastAPI + ChromaDB + OpenAI**.
+Retrieval-Augmented-Generation (RAG) service built with **FastAPI + ChromaDB + OpenAI**,
+and the platform ships with an **eval harness** that measures both the RAG assistant and
+the AIOps agent.
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/Jithendra-Kantharaju/enterprise-cloudops-ai-platform/main/Docs/AI_Archtecture.png" alt="Enterprise CloudOps AI Platform architecture" width="960">
+  <img src="https://raw.githubusercontent.com/Jithendra-Kantharaju/enterprise-cloudops-ai-platform/main/Docs/Architecture_new.png" alt="Enterprise CloudOps AI Platform architecture" width="960">
 </p>
 
 This repository takes an application from a local Docker Compose setup all the way to a
-self-healing, observable, AI-assisted platform running live on Kubernetes.
+self-healing, observable, AI-assisted platform running live on Kubernetes — and then
+**measures** the AI with a reusable evaluation harness.
 
 ---
 
@@ -23,7 +26,8 @@ self-healing, observable, AI-assisted platform running live on Kubernetes.
 - **GitOps:** ArgoCD continuously reconciles the cluster to the Git-declared state (self-healing, drift detection).
 - **Observability:** every service exposes `/metrics`; Prometheus scrapes them and Grafana visualises them.
 - **Applied AI (RAG):** a customer-facing FastAPI assistant answers product and pricing questions using retrieval over a ChromaDB vector store and OpenAI, with guardrails that keep it on-topic.
-- **AIOps (also in repo):** an AWS Bedrock agent ("Kira") that diagnoses incidents by calling Lambda tools over live logs, metrics, and cluster health.
+- **AI evaluation:** a reusable harness scores the RAG assistant (refusal accuracy, retrieval precision, faithfulness) and the AIOps agent (tool-selection, diagnosis), plus an OpenAI-vs-Anthropic comparison.
+- **Agentic AIOps:** an incident-diagnosis agent ("Kira") built as a **LangGraph** state machine that classifies an alert, selects a tool, correlates results, and produces a root cause — with a visible reasoning trace and Slack notification.
 
 ---
 
@@ -32,7 +36,8 @@ self-healing, observable, AI-assisted platform running live on Kubernetes.
 | Layer | Technology |
 |-------|-----------|
 | Application | React, Node.js / TypeScript, PostgreSQL |
-| AI assistant | Python, FastAPI, ChromaDB (vector store), OpenAI API (embeddings + chat) |
+| AI assistant | Python, FastAPI, ChromaDB (vector store), OpenAI + Anthropic (chat), OpenAI (embeddings) |
+| AIOps agent | LangGraph, OpenAI, Slack (Block Kit), AWS Bedrock (optional live path) |
 | Containers | Docker, Docker Compose |
 | Orchestration | Kubernetes (AWS EKS 1.34) |
 | Infrastructure | Terraform (modular: VPC, EKS, ECR, ArgoCD) |
@@ -40,7 +45,6 @@ self-healing, observable, AI-assisted platform running live on Kubernetes.
 | Registry | Amazon ECR (8 repositories) |
 | GitOps | ArgoCD + Kustomize |
 | Observability | Prometheus (kube-prometheus-stack) + Grafana |
-| AIOps (optional) | AWS Bedrock Agent (Amazon Nova Lite) + Lambda action groups + Streamlit |
 
 ---
 
@@ -51,21 +55,12 @@ The platform running on a real EKS cluster: ArgoCD synced and healthy, all pods 
 
 <table>
   <tr>
-    <td width="50%"><b>ArgoCD: boutique app Synced &amp; Healthy</b><br><img src="https://raw.githubusercontent.com/Jithendra-Kantharaju/enterprise-cloudops-ai-platform/main/Docs/argocd_health.png" width="440"></td>
+    <td width="50%"><b>All pods Running + ArgoCD Synced/Healthy</b><br><img src="https://raw.githubusercontent.com/Jithendra-Kantharaju/enterprise-cloudops-ai-platform/main/Docs/agrocd-pod_health.png" width="440"></td>
     <td width="50%"><b>ArgoCD: application sync view</b><br><img src="https://raw.githubusercontent.com/Jithendra-Kantharaju/enterprise-cloudops-ai-platform/main/Docs/argocd_sync.png" width="440"></td>
   </tr>
   <tr>
-    <td width="50%"><b>All pods Running on EKS</b><br><img src="https://raw.githubusercontent.com/Jithendra-Kantharaju/enterprise-cloudops-ai-platform/main/Docs/All_healthly_and_pods.png" width="440"></td>
     <td width="50%"><b>Amazon ECR: 8 image repositories</b><br><img src="https://raw.githubusercontent.com/Jithendra-Kantharaju/enterprise-cloudops-ai-platform/main/Docs/ECR.png" width="440"></td>
-  </tr>
-</table>
-
-### Observability
-
-<table>
-  <tr>
-    <td width="50%"><b>Grafana: live service dashboard</b><br><img src="https://raw.githubusercontent.com/Jithendra-Kantharaju/enterprise-cloudops-ai-platform/main/Docs/devops-aiops-grafana1.png" width="440"></td>
-    <td width="50%"><b>Prometheus: scrape targets UP</b><br><img src="https://raw.githubusercontent.com/Jithendra-Kantharaju/enterprise-cloudops-ai-platform/main/Docs/devops-aiops-Prometheus.png" width="440"></td>
+    <td width="50%"><b>Storefront (React frontend)</b><br><img src="https://raw.githubusercontent.com/Jithendra-Kantharaju/enterprise-cloudops-ai-platform/main/Docs/devops-aiops-app.png" width="440"></td>
   </tr>
 </table>
 
@@ -76,36 +71,82 @@ The platform running on a real EKS cluster: ArgoCD synced and healthy, all pods 
 A standalone **Python + FastAPI** service, independent of the Node.js backend, that
 answers shopper questions about **products and pricing**. It embeds a small product +
 policy knowledge base into **ChromaDB**, retrieves the most relevant context for each
-question, and asks **OpenAI** to answer grounded in that context. A guardrail keeps it
-strictly on-topic — it politely refuses anything unrelated to the store. A React chat
-widget in the storefront calls it at `/ai/ask` (proxied by nginx to the service).
+question, and asks the LLM to answer grounded in that context. A guardrail keeps it
+strictly on-topic — it politely refuses anything unrelated to the store.
 
 <table>
   <tr>
-    <td width="50%"><b>Storefront (React frontend)</b><br><img src="https://raw.githubusercontent.com/Jithendra-Kantharaju/enterprise-cloudops-ai-platform/main/Docs/devops-aiops-app.png" width="440"></td>
-    <td width="50%"><b>AI assistant answering in the storefront</b><br><img src="https://raw.githubusercontent.com/Jithendra-Kantharaju/enterprise-cloudops-ai-platform/main/Docs/AI-Chatbot.png" width="440"></td>
+    <td width="50%"><b>Storefront chat widget</b><br><img src="https://raw.githubusercontent.com/Jithendra-Kantharaju/enterprise-cloudops-ai-platform/main/Docs/AI-Chatbot.png" width="440"></td>
+    <td width="50%"><b>Grafana: live service dashboard</b><br><img src="https://raw.githubusercontent.com/Jithendra-Kantharaju/enterprise-cloudops-ai-platform/main/Docs/devops-aiops-grafana1.png" width="440"></td>
   </tr>
 </table>
-
-**Behaviours it demonstrates:** answering live pricing, answering company-specific
-questions from retrieved docs (e.g. restock policy) that a base model could not know,
-and refusing off-topic questions.
 
 ---
 
-## AIOps assistant "Kira"
+## Measuring the AI: evaluation harness
 
-Also included (`projects/aiops-assistant/`): an **AWS Bedrock agent** that reasons like
-an SRE. Asked "are any services down?", it decides which of three **Lambda** tools to
-call (CloudWatch logs, Prometheus metrics, EKS health), correlates the results, and
-returns a root cause plus a fix.
+A reusable harness (`projects/boutique-microservices/eval/`) runs fixed test suites
+against the assistant and the agent, so quality is a **measured number**, not a claim.
+The faithfulness judge is a stronger model held constant across runs, and a sample of its
+scores was hand-verified.
+
+**RAG assistant** — 26 cases across in-scope / off-topic / ambiguous buckets:
+
+<p align="center"><img src="https://raw.githubusercontent.com/Jithendra-Kantharaju/enterprise-cloudops-ai-platform/main/Docs/RAG_Eval.png" width="620"></p>
+
+| Metric | Score |
+|--------|-------|
+| Refusal accuracy | 0.955 |
+| Retrieval precision@k | 1.0 |
+| Avg faithfulness (1–5, LLM-judge) | 5.0 |
+
+> The single miss (case `r11`, a return-policy question) is an honest finding: the
+> guardrail over-refused a question it should have answered — a concrete v1 → v2 target.
+
+**AIOps agent (Kira)** — 16 offline scenarios against mocked tool outputs:
+
+<p align="center"><img src="https://raw.githubusercontent.com/Jithendra-Kantharaju/enterprise-cloudops-ai-platform/main/Docs/KIRA_Eval.png" width="620"></p>
+
+| Metric | Score |
+|--------|-------|
+| Tool-selection accuracy | 0.938 |
+| Diagnosis-category accuracy | 0.938 |
+
+**OpenAI vs Anthropic** — the same RAG eval run against both providers (judge held
+constant for a fair comparison):
+
+<p align="center"><img src="https://raw.githubusercontent.com/Jithendra-Kantharaju/enterprise-cloudops-ai-platform/main/Docs/Eval_compare_Api.png" width="720"></p>
+
+| Metric | OpenAI (gpt-4o-mini) | Anthropic (claude-haiku-4-5) |
+|--------|----------------------|------------------------------|
+| Refusal accuracy | 0.955 | 1.0 |
+| Retrieval precision@k | 1.0 | 1.0 |
+| Avg faithfulness (1–5) | 5.0 | 5.0 |
+| Avg latency (s) | 1.46 | 2.02 |
+| Est. cost (USD / run) | 0.00148 | 0.01791 |
+
+> Takeaway: Anthropic edged refusal accuracy but cost ~12× more and ran slower on this
+> workload — a real cost/quality/latency trade-off. (Costs use an illustrative price table.)
+
+---
+
+## Agentic AIOps: "Kira" (LangGraph)
+
+Kira diagnoses incidents as a **LangGraph state machine**:
+`classify_intent → select_tool → call_tool → correlate → generate_diagnosis`, looping
+back to gather more evidence when confidence is low. It calls three tools (`fetch_logs`,
+`fetch_metrics`, `fetch_service_health`) — mocked for a laptop-only demo, or live against
+CloudWatch/Prometheus/EKS. Every run exposes its full decision trace, and a diagnosis can
+be pushed to Slack.
 
 <table>
   <tr>
-    <td width="50%"><b>Kira: cluster healthy</b><br><img src="https://raw.githubusercontent.com/Jithendra-Kantharaju/enterprise-cloudops-ai-platform/main/Docs/devops-aiops-UI.png" width="440"></td>
-    <td width="50%"><b>Kira: detecting a service scaled to zero</b><br><img src="https://raw.githubusercontent.com/Jithendra-Kantharaju/enterprise-cloudops-ai-platform/main/Docs/devops-aiops-UI-3.0.png" width="440"></td>
+    <td width="50%"><b>Reasoning trace ("show reasoning steps")</b><br><img src="https://raw.githubusercontent.com/Jithendra-Kantharaju/enterprise-cloudops-ai-platform/main/Docs/KIRA-LangGraph__local__mock_.png" width="440"></td>
+    <td width="50%"><b>Diagnosis + Slack notify</b><br><img src="https://raw.githubusercontent.com/Jithendra-Kantharaju/enterprise-cloudops-ai-platform/main/Docs/KIRA-LangGraph__local__mock_2_0.png" width="440"></td>
   </tr>
 </table>
+
+<p align="center"><img src="https://raw.githubusercontent.com/Jithendra-Kantharaju/enterprise-cloudops-ai-platform/main/Docs/graph_kira.png" width="820"></p>
 
 ---
 
@@ -127,6 +168,9 @@ self-heal and drift detection.
 **Observe.** Every backend exposes `/metrics`; a `ServiceMonitor` tells Prometheus to
 scrape it, and Grafana ships a pre-loaded dashboard.
 
+**Measure.** The eval harness scores the assistant and the agent and writes JSON results
+under `eval/results/`.
+
 ---
 
 ## Deploy it yourself
@@ -141,6 +185,9 @@ scrape it, and Grafana ships a pre-loaded dashboard.
 4. `kubectl apply -f gitops/argo-cd.yml -n argocd` and let ArgoCD sync.
 5. Set the real OpenAI key in-cluster, then run the DB restore job to seed Postgres.
 
+**Evaluate:** in `projects/boutique-microservices/`, `pip install -r eval/requirements.txt`,
+then `python eval/run_rag_eval.py` and `python eval/run_kira_eval.py`.
+
 > Cost: EKS, on-demand nodes, and any LoadBalancer bill hourly. Run `terraform destroy`
 > and remove LoadBalancers/PVCs when done.
 
@@ -151,14 +198,13 @@ scrape it, and Grafana ships a pre-loaded dashboard.
 ```
 enterprise-cloudops-ai-platform/
 ├── projects/
-│   ├── boutique-microservices/    # App: 7 services + Postgres + ai-assistant (FDE) + chroma
+│   ├── boutique-microservices/    # App: 7 services + Postgres + ai-assistant + chroma + eval/
 │   ├── Infrastructure/            # Terraform modules for AWS / EKS / ECR / ArgoCD
-│   └── aiops-assistant/           # AIOps agent "Kira" (Bedrock + Lambdas + Streamlit)
+│   └── aiops-assistant/           # Kira: LangGraph graph/, Lambdas, Slack notifier, Streamlit
 ├── gitops/
 │   ├── argo-cd.yml                # ArgoCD Application manifest
 │   ├── kustomization.yml          # Kustomize entry point
 │   └── k8s/                       # Deployments, Services, StatefulSets, ServiceMonitors
-│       └── ai-assistant/          # ai-assistant + chroma manifests
 ├── Docs/                          # Architecture diagram + screenshots + Project.md
 └── .github/workflows/ci.yml       # CI pipeline (build, push, update manifests)
 ```
@@ -176,16 +222,16 @@ Real problems solved while building and deploying this platform.
 |---------|-----------|-----|
 | `terraform apply` -> `Error: Unauthorized` on namespaces | Short-lived EKS auth token expired during the long cluster build | Re-run apply (fresh token), or use an `exec` auth plugin |
 | `Error locating chart ... no cached repo found` | Helm provider needs the chart repos in the local cache | `helm repo add` argo + prometheus-community, then `helm repo update` |
-| Pods `ImagePullBackOff` on a tag `not found` | Manifests referenced an old placeholder image tag, not the tag CI actually pushed | Rewrote manifests to the real ECR tag and re-synced |
+| Pods `ImagePullBackOff` on a tag `not found` | Per-service manifests hardcoded an old image tag, not the tag CI pushed | Aligned manifests to the real ECR tag and re-synced |
 | New pods stuck `Pending` — "Too many pods" | Single `m7i-flex.large` node hit its pod/IP limit during a rolling update | Scaled the node group to 2 nodes |
 | Backends `CrashLoopBackOff` — `database "auth_db" does not exist` | Postgres starts empty in Kubernetes (no auto-run init scripts) | Ran the DB restore Job to create and seed the four databases |
+| `ai-assistant` 401 with placeholder key after patching | ArgoCD self-heal reverted the secret to the Git-committed placeholder | Disabled auto-sync, patched the real key, restarted; long-term: External Secrets |
 | `terraform destroy` -> `DependencyViolation` on subnet/VPC | Kubernetes-created LoadBalancer / ENIs / security groups outlived the cluster | Deleted the leftover ELB, ENIs, and non-default security groups, then re-ran destroy |
-| `kubectl scale --replicas=0` instantly reverted | ArgoCD self-heal reconciled drift back to Git | GitOps working as intended; disable auto-sync to test failures |
 | Windows / Git Bash path mangling | MSYS auto-converts leading-slash args | `export MSYS_NO_PATHCONV=1`, `pwd -W`, `python` not `python3` |
 
 ---
 
 ## Acknowledgements
 
-Built by following and adapting DevOps + AI tutorial series, then debugged, extended, and
-deployed end-to-end on real AWS infrastructure.
+Built by following and adapting DevOps + AI tutorial series, then debugged, extended,
+measured, and deployed end-to-end on real AWS infrastructure.
